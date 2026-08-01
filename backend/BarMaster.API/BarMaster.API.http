@@ -1,0 +1,6 @@
+@BarMaster.API_HostAddress = http://localhost:5028
+
+GET {{BarMaster.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
