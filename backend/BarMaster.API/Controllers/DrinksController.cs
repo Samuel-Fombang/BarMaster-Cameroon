@@ -1,7 +1,7 @@
-using BarMaster.API.Data;
+using BarMaster.API.DTOs;
 using BarMaster.API.Models;
+using BarMaster.API.Services;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Driver;
 
 namespace BarMaster.API.Controllers;
 
@@ -9,43 +9,24 @@ namespace BarMaster.API.Controllers;
 [Route("api/[controller]")]
 public class DrinksController : ControllerBase
 {
-    private readonly MongoDbContext _context;
+    private readonly DrinkService _drinkService;
 
-    public DrinksController(MongoDbContext context)
+    public DrinksController(DrinkService drinkService)
     {
-        _context = context;
+        _drinkService = drinkService;
     }
 
     [HttpGet]
     public async Task<ActionResult<List<Drink>>> GetDrinks()
     {
-        var drinks = await _context.Drinks
-            .Find(_ => true)
-            .ToListAsync();
-
+        var drinks = await _drinkService.GetAllAsync();
         return Ok(drinks);
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<Drink>> CreateDrink(Drink drink)
-    {
-        drink.Id = null;
-
-        await _context.Drinks.InsertOneAsync(drink);
-
-        return CreatedAtAction(
-            nameof(GetDrinkById),
-            new { id = drink.Id },
-            drink
-        );
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<Drink>> GetDrinkById(string id)
     {
-        var drink = await _context.Drinks
-            .Find(item => item.Id == id)
-            .FirstOrDefaultAsync();
+        var drink = await _drinkService.GetByIdAsync(id);
 
         if (drink is null)
         {
@@ -56,5 +37,49 @@ public class DrinksController : ControllerBase
         }
 
         return Ok(drink);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<Drink>> CreateDrink(CreateDrinkDto dto)
+    {
+        var drink = await _drinkService.CreateAsync(dto);
+
+        return CreatedAtAction(
+            nameof(GetDrinkById),
+            new { id = drink.Id },
+            drink
+        );
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateDrink(string id, UpdateDrinkDto dto)
+    {
+        var updated = await _drinkService.UpdateAsync(id, dto);
+
+        if (!updated)
+        {
+            return NotFound(new
+            {
+                message = "Drink not found"
+            });
+        }
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteDrink(string id)
+    {
+        var deleted = await _drinkService.DeleteAsync(id);
+
+        if (!deleted)
+        {
+            return NotFound(new
+            {
+                message = "Drink not found"
+            });
+        }
+
+        return NoContent();
     }
 }

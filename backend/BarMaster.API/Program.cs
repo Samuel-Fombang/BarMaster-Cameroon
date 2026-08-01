@@ -1,4 +1,6 @@
 using BarMaster.API.Data;
+using BarMaster.API.Repositories;
+using BarMaster.API.Services;
 using BarMaster.API.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,13 +10,17 @@ builder.Services.Configure<DatabaseSettings>(
     builder.Configuration.GetSection("MongoDbSettings")
 );
 
-// Register MongoDB Context
+// Register MongoDB context
 builder.Services.AddSingleton<MongoDbContext>();
 
-// Add Controllers
+// Register repository and service
+builder.Services.AddScoped<DrinkRepository>();
+builder.Services.AddScoped<DrinkService>();
+
+// Add controllers
 builder.Services.AddControllers();
 
-// Configure CORS for React Frontend
+// Allow the React frontend to call the backend
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
@@ -26,12 +32,12 @@ builder.Services.AddCors(options =>
     });
 });
 
-// OpenAPI (Swagger)
+// Add OpenAPI support
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Configure HTTP Request Pipeline
+// Enable OpenAPI in development
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -40,10 +46,10 @@ if (app.Environment.IsDevelopment())
 // Enable CORS
 app.UseCors("AllowReactApp");
 
-// Enable Controllers
+// Enable controller routes
 app.MapControllers();
 
-// Test Endpoint
+// Test endpoint
 app.MapGet("/", () => Results.Ok(new
 {
     Application = "BarMaster Cameroon API",
