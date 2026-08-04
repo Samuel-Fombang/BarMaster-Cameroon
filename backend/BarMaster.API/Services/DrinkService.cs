@@ -27,15 +27,15 @@ public class DrinkService
     {
         var drink = new Drink
         {
-            Name = dto.Name,
-            Category = dto.Category,
-            Brand = dto.Brand,
-            BottleSize = dto.BottleSize,
+            Name = dto.Name.Trim(),
+            Category = dto.Category.Trim(),
+            Brand = dto.Brand.Trim(),
+            BottleSize = dto.BottleSize.Trim(),
             BuyingPrice = dto.BuyingPrice,
             SellingPrice = dto.SellingPrice,
             CurrentStock = dto.CurrentStock,
             MinimumStock = dto.MinimumStock,
-            Supplier = dto.Supplier,
+            Supplier = dto.Supplier.Trim(),
             IsActive = dto.IsActive
         };
 
@@ -44,27 +44,34 @@ public class DrinkService
         return drink;
     }
 
-    public async Task<bool> UpdateAsync(string id, UpdateDrinkDto dto)
+    public async Task<bool> UpdateAsync(
+        string id,
+        UpdateDrinkDto dto
+    )
     {
-        var existingDrink = await _repository.GetByIdAsync(id);
+        var existingDrink =
+            await _repository.GetByIdAsync(id);
 
         if (existingDrink is null)
         {
             return false;
         }
 
-        existingDrink.Name = dto.Name;
-        existingDrink.Category = dto.Category;
-        existingDrink.Brand = dto.Brand;
-        existingDrink.BottleSize = dto.BottleSize;
+        existingDrink.Name = dto.Name.Trim();
+        existingDrink.Category = dto.Category.Trim();
+        existingDrink.Brand = dto.Brand.Trim();
+        existingDrink.BottleSize = dto.BottleSize.Trim();
         existingDrink.BuyingPrice = dto.BuyingPrice;
         existingDrink.SellingPrice = dto.SellingPrice;
         existingDrink.CurrentStock = dto.CurrentStock;
         existingDrink.MinimumStock = dto.MinimumStock;
-        existingDrink.Supplier = dto.Supplier;
+        existingDrink.Supplier = dto.Supplier.Trim();
         existingDrink.IsActive = dto.IsActive;
 
-        return await _repository.UpdateAsync(id, existingDrink);
+        return await _repository.UpdateAsync(
+            id,
+            existingDrink
+        );
     }
 
     public async Task<bool> DeleteAsync(string id)

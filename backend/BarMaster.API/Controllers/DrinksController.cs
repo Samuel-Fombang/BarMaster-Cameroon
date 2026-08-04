@@ -1,11 +1,13 @@
 using BarMaster.API.DTOs;
 using BarMaster.API.Models;
 using BarMaster.API.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BarMaster.API.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class DrinksController : ControllerBase
 {
@@ -20,6 +22,7 @@ public class DrinksController : ControllerBase
     public async Task<ActionResult<List<Drink>>> GetDrinks()
     {
         var drinks = await _drinkService.GetAllAsync();
+
         return Ok(drinks);
     }
 
@@ -52,7 +55,10 @@ public class DrinksController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateDrink(string id, UpdateDrinkDto dto)
+    public async Task<IActionResult> UpdateDrink(
+        string id,
+        UpdateDrinkDto dto
+    )
     {
         var updated = await _drinkService.UpdateAsync(id, dto);
 
