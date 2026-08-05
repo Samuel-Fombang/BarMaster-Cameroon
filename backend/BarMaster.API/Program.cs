@@ -78,10 +78,33 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowReactApp", policy =>
     {
         policy
-            .WithOrigins(
-                "http://localhost:5173",
-                "https://bar-master-cameroon.vercel.app"
-            )
+            .SetIsOriginAllowed(origin =>
+            {
+                if (origin == "http://localhost:5173")
+                {
+                    return true;
+                }
+
+                if (!Uri.TryCreate(
+                        origin,
+                        UriKind.Absolute,
+                        out var uri))
+                {
+                    return false;
+                }
+
+                return uri.Scheme == Uri.UriSchemeHttps &&
+                       (
+                           uri.Host.Equals(
+                               "bar-master-cameroon.vercel.app",
+                               StringComparison.OrdinalIgnoreCase
+                           ) ||
+                           uri.Host.EndsWith(
+                               ".vercel.app",
+                               StringComparison.OrdinalIgnoreCase
+                           )
+                       );
+            })
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -149,10 +172,8 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Make the OpenAPI document available locally and online.
 app.MapOpenApi();
 
-// Seed drinks only when running locally.
 if (app.Environment.IsDevelopment())
 {
     using var scope =
