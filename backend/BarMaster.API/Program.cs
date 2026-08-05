@@ -79,7 +79,8 @@ builder.Services.AddCors(options =>
     {
         policy
             .WithOrigins(
-                "http://localhost:5173"
+                "http://localhost:5173",
+                "https://bar-master-cameroon.vercel.app"
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
@@ -148,10 +149,10 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// OpenAPI is available in both Development and Production.
+// Make the OpenAPI document available locally and online.
 app.MapOpenApi();
 
-// Seed drinks only when running locally in Development.
+// Seed drinks only when running locally.
 if (app.Environment.IsDevelopment())
 {
     using var scope =
