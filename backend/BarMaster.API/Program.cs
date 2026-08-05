@@ -78,7 +78,9 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowReactApp", policy =>
     {
         policy
-            .WithOrigins("http://localhost:5173")
+            .WithOrigins(
+                "http://localhost:5173"
+            )
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -146,10 +148,12 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+// OpenAPI is available in both Development and Production.
+app.MapOpenApi();
+
+// Seed drinks only when running locally in Development.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-
     using var scope =
         app.Services.CreateScope();
 
