@@ -27,6 +27,12 @@ public class Transfer
     [BsonElement("quantity")]
     public int Quantity { get; set; }
 
+    [BsonElement("pricePerBottle")]
+    public decimal PricePerBottle { get; set; }
+
+    [BsonElement("totalPrice")]
+    public decimal TotalPrice { get; set; }
+
     [BsonElement("reason")]
     public string Reason { get; set; } = string.Empty;
 

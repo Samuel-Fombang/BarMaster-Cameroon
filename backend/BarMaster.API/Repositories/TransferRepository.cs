@@ -49,19 +49,21 @@ public class TransferRepository
         Transfer updatedTransfer
     )
     {
-        var result = await _context.Transfers.ReplaceOneAsync(
-            transfer => transfer.Id == id,
-            updatedTransfer
-        );
+        var result =
+            await _context.Transfers.ReplaceOneAsync(
+                transfer => transfer.Id == id,
+                updatedTransfer
+            );
 
         return result.ModifiedCount > 0;
     }
 
     public async Task<bool> DeleteAsync(string id)
     {
-        var result = await _context.Transfers.DeleteOneAsync(
-            transfer => transfer.Id == id
-        );
+        var result =
+            await _context.Transfers.DeleteOneAsync(
+                transfer => transfer.Id == id
+            );
 
         return result.DeletedCount > 0;
     }

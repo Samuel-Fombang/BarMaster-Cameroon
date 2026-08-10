@@ -1,11 +1,13 @@
 import {
   Alert,
+  Box,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Grid,
+  InputAdornment,
   MenuItem,
   TextField,
   Typography,
@@ -19,10 +21,15 @@ import type { Transfer } from "../../types/transfer";
 
 type TransferDialogProps = {
   open: boolean;
+
   drinks: Drink[];
   locations: Location[];
   inventory: Inventory[];
+
+  transfer?: Transfer | null;
+
   onClose: () => void;
+
   onSave: (transfer: Transfer) => Promise<void>;
 };
 
@@ -31,6 +38,7 @@ type TransferErrors = {
   destinationLocationId?: string;
   drinkId?: string;
   quantity?: string;
+  pricePerBottle?: string;
   reason?: string;
 };
 
@@ -39,7 +47,10 @@ const emptyTransfer: Transfer = {
   destinationLocationId: "",
   drinkId: "",
   quantity: 1,
+  pricePerBottle: 0,
+  totalPrice: 0,
   reason: "",
+  status: "Completed",
 };
 
 function TransferDialog({
@@ -47,6 +58,7 @@ function TransferDialog({
   drinks,
   locations,
   inventory,
+  transfer,
   onClose,
   onSave,
 }: TransferDialogProps) {
@@ -56,19 +68,61 @@ function TransferDialog({
   const [errors, setErrors] =
     useState<TransferErrors>({});
 
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] =
+    useState(false);
+
+  const isEditing = Boolean(transfer?.id);
 
   useEffect(() => {
-    if (open) {
-      setFormData({ ...emptyTransfer });
-      setErrors({});
+    if (!open) {
+      return;
     }
-  }, [open]);
+
+    if (transfer) {
+      setFormData({
+        ...transfer,
+
+        quantity:
+          Number(transfer.quantity) || 1,
+
+        pricePerBottle:
+          Number(transfer.pricePerBottle) || 0,
+
+        totalPrice:
+          Number(transfer.quantity || 0) *
+          Number(transfer.pricePerBottle || 0),
+
+        reason:
+          transfer.reason ?? "",
+
+        status:
+          transfer.status ?? "Completed",
+      });
+    } else {
+      setFormData({
+        ...emptyTransfer,
+      });
+    }
+
+    setErrors({});
+  }, [open, transfer]);
 
   const sourceLocations = useMemo(() => {
     return locations.filter((location) => {
       if (!location.id || !location.isActive) {
         return false;
+      }
+
+      /*
+       * While editing, keep the current source
+       * location visible even if inventory has
+       * changed after the transfer.
+       */
+      if (
+        isEditing &&
+        location.id === formData.sourceLocationId
+      ) {
+        return true;
       }
 
       return inventory.some(
@@ -78,7 +132,12 @@ function TransferDialog({
           item.isActive
       );
     });
-  }, [locations, inventory]);
+  }, [
+    locations,
+    inventory,
+    isEditing,
+    formData.sourceLocationId,
+  ]);
 
   const availableDrinks = useMemo(() => {
     if (!formData.sourceLocationId) {
@@ -89,33 +148,58 @@ function TransferDialog({
       inventory
         .filter(
           (item) =>
-            item.locationId === formData.sourceLocationId &&
+            item.locationId ===
+              formData.sourceLocationId &&
             item.quantity > 0 &&
             item.isActive
         )
-        .map((item) => item.drinkId)
+        .map((item) =>
+          String(item.drinkId).trim()
+        )
     );
 
-    return drinks.filter(
-      (drink) =>
-        Boolean(drink.id) &&
+    return drinks.filter((drink) => {
+      if (!drink.id) {
+        return false;
+      }
+
+      const drinkId =
+        String(drink.id).trim();
+
+      if (
+        isEditing &&
+        drinkId ===
+          String(formData.drinkId).trim()
+      ) {
+        return true;
+      }
+
+      return (
         drink.isActive &&
-        availableDrinkIds.has(drink.id as string)
-    );
+        availableDrinkIds.has(drinkId)
+      );
+    });
   }, [
     drinks,
     inventory,
     formData.sourceLocationId,
+    formData.drinkId,
+    isEditing,
   ]);
 
-  const destinationLocations = useMemo(() => {
-    return locations.filter(
-      (location) =>
-        Boolean(location.id) &&
-        location.isActive &&
-        location.id !== formData.sourceLocationId
-    );
-  }, [locations, formData.sourceLocationId]);
+  const destinationLocations =
+    useMemo(() => {
+      return locations.filter(
+        (location) =>
+          Boolean(location.id) &&
+          location.isActive &&
+          location.id !==
+            formData.sourceLocationId
+      );
+    }, [
+      locations,
+      formData.sourceLocationId,
+    ]);
 
   const availableQuantity = useMemo(() => {
     if (
@@ -125,34 +209,83 @@ function TransferDialog({
       return 0;
     }
 
-    return (
+    const inventoryQuantity =
       inventory.find(
         (item) =>
-          item.locationId === formData.sourceLocationId &&
-          item.drinkId === formData.drinkId
-      )?.quantity ?? 0
-    );
+          String(item.locationId).trim() ===
+            String(
+              formData.sourceLocationId
+            ).trim() &&
+          String(item.drinkId).trim() ===
+            String(formData.drinkId).trim()
+      )?.quantity ?? 0;
+
+    /*
+     * When editing, the original quantity was
+     * already removed from the source.
+     * Add it back for validation.
+     */
+    if (
+      isEditing &&
+      transfer?.sourceLocationId ===
+        formData.sourceLocationId &&
+      transfer?.drinkId ===
+        formData.drinkId
+    ) {
+      return (
+        inventoryQuantity +
+        Number(transfer.quantity || 0)
+      );
+    }
+
+    return inventoryQuantity;
   }, [
     inventory,
     formData.sourceLocationId,
     formData.drinkId,
+    isEditing,
+    transfer,
+  ]);
+
+  const totalPrice = useMemo(() => {
+    const quantity =
+      Number(formData.quantity) || 0;
+
+    const price =
+      Number(formData.pricePerBottle) || 0;
+
+    return quantity * price;
+  }, [
+    formData.quantity,
+    formData.pricePerBottle,
   ]);
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const { name, value, type } = event.target;
+    const {
+      name,
+      value,
+      type,
+    } = event.target;
 
     setFormData((current) => {
       const nextValue =
-        type === "number" ? Number(value) : value;
+        type === "number"
+          ? Number(value)
+          : value;
 
       if (name === "sourceLocationId") {
         return {
           ...current,
-          sourceLocationId: String(nextValue),
+
+          sourceLocationId:
+            String(nextValue),
+
           destinationLocationId: "",
+
           drinkId: "",
+
           quantity: 1,
         };
       }
@@ -160,7 +293,10 @@ function TransferDialog({
       if (name === "drinkId") {
         return {
           ...current,
-          drinkId: String(nextValue),
+
+          drinkId:
+            String(nextValue),
+
           quantity: 1,
         };
       }
@@ -178,14 +314,17 @@ function TransferDialog({
   };
 
   const validate = () => {
-    const newErrors: TransferErrors = {};
+    const newErrors: TransferErrors =
+      {};
 
     if (!formData.sourceLocationId) {
       newErrors.sourceLocationId =
         "Please select a source location.";
     }
 
-    if (!formData.destinationLocationId) {
+    if (
+      !formData.destinationLocationId
+    ) {
       newErrors.destinationLocationId =
         "Please select a destination location.";
     }
@@ -201,27 +340,50 @@ function TransferDialog({
     }
 
     if (!formData.drinkId) {
-      newErrors.drinkId = "Please select a drink.";
+      newErrors.drinkId =
+        "Please select a drink.";
     }
 
-    if (formData.quantity <= 0) {
+    if (
+      !formData.quantity ||
+      formData.quantity <= 0
+    ) {
       newErrors.quantity =
         "Quantity must be greater than zero.";
     }
 
-    if (formData.quantity > availableQuantity) {
+    if (
+      availableQuantity > 0 &&
+      formData.quantity >
+        availableQuantity
+    ) {
       newErrors.quantity =
         `Only ${availableQuantity} bottles are available.`;
     }
 
-    if (formData.reason.length > 500) {
+    if (
+      formData.pricePerBottle ===
+        undefined ||
+      formData.pricePerBottle === null ||
+      formData.pricePerBottle <= 0
+    ) {
+      newErrors.pricePerBottle =
+        "Enter the price per bottle.";
+    }
+
+    if (
+      formData.reason &&
+      formData.reason.length > 500
+    ) {
       newErrors.reason =
         "Maximum 500 characters.";
     }
 
     setErrors(newErrors);
 
-    return Object.keys(newErrors).length === 0;
+    return (
+      Object.keys(newErrors).length === 0
+    );
   };
 
   const handleSave = async () => {
@@ -232,7 +394,20 @@ function TransferDialog({
     setSaving(true);
 
     try {
-      await onSave(formData);
+      await onSave({
+        ...formData,
+
+        quantity:
+          Number(formData.quantity),
+
+        pricePerBottle:
+          Number(
+            formData.pricePerBottle
+          ),
+
+        totalPrice,
+      });
+
       onClose();
     } finally {
       setSaving(false);
@@ -242,25 +417,41 @@ function TransferDialog({
   return (
     <Dialog
       open={open}
-      onClose={saving ? undefined : onClose}
+      onClose={
+        saving
+          ? undefined
+          : onClose
+      }
       fullWidth
       maxWidth="sm"
     >
       <DialogTitle>
-        Transfer Stock
+        {isEditing
+          ? "Edit Transfer"
+          : "Transfer Stock"}
       </DialogTitle>
 
       <DialogContent dividers>
-        <Grid container spacing={2} sx={{ mt: 0.5 }}>
+        <Grid
+          container
+          spacing={2}
+          sx={{ mt: 0.5 }}
+        >
           <Grid size={{ xs: 12 }}>
             <TextField
               select
               label="From Location"
               name="sourceLocationId"
-              value={formData.sourceLocationId}
+              value={
+                formData.sourceLocationId
+              }
               onChange={handleChange}
-              error={Boolean(errors.sourceLocationId)}
-              helperText={errors.sourceLocationId}
+              error={Boolean(
+                errors.sourceLocationId
+              )}
+              helperText={
+                errors.sourceLocationId
+              }
               fullWidth
               required
             >
@@ -268,14 +459,21 @@ function TransferDialog({
                 Select source location
               </MenuItem>
 
-              {sourceLocations.map((location) => (
-                <MenuItem
-                  key={location.id ?? location.name}
-                  value={location.id ?? ""}
-                >
-                  {location.name}
-                </MenuItem>
-              ))}
+              {sourceLocations.map(
+                (location) => (
+                  <MenuItem
+                    key={
+                      location.id ??
+                      location.name
+                    }
+                    value={
+                      location.id ?? ""
+                    }
+                  >
+                    {location.name}
+                  </MenuItem>
+                )
+              )}
             </TextField>
           </Grid>
 
@@ -284,7 +482,9 @@ function TransferDialog({
               select
               label="To Location"
               name="destinationLocationId"
-              value={formData.destinationLocationId}
+              value={
+                formData.destinationLocationId
+              }
               onChange={handleChange}
               error={Boolean(
                 errors.destinationLocationId
@@ -294,20 +494,29 @@ function TransferDialog({
               }
               fullWidth
               required
-              disabled={!formData.sourceLocationId}
+              disabled={
+                !formData.sourceLocationId
+              }
             >
               <MenuItem value="">
                 Select destination location
               </MenuItem>
 
-              {destinationLocations.map((location) => (
-                <MenuItem
-                  key={location.id ?? location.name}
-                  value={location.id ?? ""}
-                >
-                  {location.name}
-                </MenuItem>
-              ))}
+              {destinationLocations.map(
+                (location) => (
+                  <MenuItem
+                    key={
+                      location.id ??
+                      location.name
+                    }
+                    value={
+                      location.id ?? ""
+                    }
+                  >
+                    {location.name}
+                  </MenuItem>
+                )
+              )}
             </TextField>
           </Grid>
 
@@ -318,30 +527,45 @@ function TransferDialog({
               name="drinkId"
               value={formData.drinkId}
               onChange={handleChange}
-              error={Boolean(errors.drinkId)}
-              helperText={errors.drinkId}
+              error={Boolean(
+                errors.drinkId
+              )}
+              helperText={
+                errors.drinkId
+              }
               fullWidth
               required
-              disabled={!formData.sourceLocationId}
+              disabled={
+                !formData.sourceLocationId
+              }
             >
               <MenuItem value="">
                 Select drink
               </MenuItem>
 
-              {availableDrinks.map((drink) => (
-                <MenuItem
-                  key={drink.id ?? drink.name}
-                  value={drink.id ?? ""}
-                >
-                  {drink.name}
-                  {drink.brand
-                    ? ` — ${drink.brand}`
-                    : ""}
-                  {drink.bottleSize
-                    ? ` (${drink.bottleSize})`
-                    : ""}
-                </MenuItem>
-              ))}
+              {availableDrinks.map(
+                (drink) => (
+                  <MenuItem
+                    key={
+                      drink.id ??
+                      drink.name
+                    }
+                    value={
+                      drink.id ?? ""
+                    }
+                  >
+                    {drink.name}
+
+                    {drink.brand
+                      ? ` — ${drink.brand}`
+                      : ""}
+
+                    {drink.bottleSize
+                      ? ` (${drink.bottleSize})`
+                      : ""}
+                  </MenuItem>
+                )
+              )}
             </TextField>
           </Grid>
 
@@ -349,24 +573,81 @@ function TransferDialog({
             <Grid size={{ xs: 12 }}>
               <Alert severity="info">
                 Available quantity:{" "}
-                <strong>{availableQuantity}</strong>
+                <strong>
+                  {availableQuantity}
+                </strong>{" "}
+                bottles
               </Alert>
             </Grid>
           )}
 
-          <Grid size={{ xs: 12 }}>
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+            }}
+          >
             <TextField
               label="Quantity"
               name="quantity"
               type="number"
-              value={formData.quantity}
+              value={
+                formData.quantity
+              }
               onChange={handleChange}
-              error={Boolean(errors.quantity)}
-              helperText={errors.quantity}
+              error={Boolean(
+                errors.quantity
+              )}
+              helperText={
+                errors.quantity
+              }
               slotProps={{
                 htmlInput: {
                   min: 1,
-                  max: availableQuantity || undefined,
+
+                  max:
+                    availableQuantity ||
+                    undefined,
+                },
+              }}
+              fullWidth
+              required
+            />
+          </Grid>
+
+          <Grid
+            size={{
+              xs: 12,
+              sm: 6,
+            }}
+          >
+            <TextField
+              label="Price per Bottle"
+              name="pricePerBottle"
+              type="number"
+              value={
+                formData.pricePerBottle
+              }
+              onChange={handleChange}
+              error={Boolean(
+                errors.pricePerBottle
+              )}
+              helperText={
+                errors.pricePerBottle ??
+                "Enter the current bottle price."
+              }
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      FCFA
+                    </InputAdornment>
+                  ),
+                },
+
+                htmlInput: {
+                  min: 0,
+                  step: 1,
                 },
               }}
               fullWidth
@@ -375,13 +656,64 @@ function TransferDialog({
           </Grid>
 
           <Grid size={{ xs: 12 }}>
+            <Box
+              sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 2,
+                bgcolor: "grey.50",
+                p: 2,
+              }}
+            >
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                Total Transfer Value
+              </Typography>
+
+              <Typography
+                variant="h5"
+                sx={{
+                  mt: 0.5,
+                  fontWeight: 700,
+                }}
+              >
+                {totalPrice.toLocaleString()}{" "}
+                FCFA
+              </Typography>
+
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                {Number(
+                  formData.quantity || 0
+                ).toLocaleString()}{" "}
+                bottles ×{" "}
+                {Number(
+                  formData.pricePerBottle ||
+                    0
+                ).toLocaleString()}{" "}
+                FCFA
+              </Typography>
+            </Box>
+          </Grid>
+
+          <Grid size={{ xs: 12 }}>
             <TextField
               label="Reason"
               name="reason"
-              value={formData.reason}
+              value={
+                formData.reason
+              }
               onChange={handleChange}
-              error={Boolean(errors.reason)}
-              helperText={errors.reason}
+              error={Boolean(
+                errors.reason
+              )}
+              helperText={
+                errors.reason
+              }
               placeholder="Example: Stock issued to the bar"
               multiline
               rows={3}
@@ -394,9 +726,9 @@ function TransferDialog({
               variant="body2"
               color="text.secondary"
             >
-              Saving this transfer will immediately reduce
-              stock at the source and increase stock at the
-              destination.
+              {isEditing
+                ? "Saving changes may adjust the stock quantities at the source and destination."
+                : "Saving this transfer will immediately reduce stock at the source and increase stock at the destination."}
             </Typography>
           </Grid>
         </Grid>
@@ -417,8 +749,12 @@ function TransferDialog({
           disabled={saving}
         >
           {saving
-            ? "Transferring..."
-            : "Complete Transfer"}
+            ? isEditing
+              ? "Saving..."
+              : "Transferring..."
+            : isEditing
+              ? "Save Changes"
+              : "Complete Transfer"}
         </Button>
       </DialogActions>
     </Dialog>

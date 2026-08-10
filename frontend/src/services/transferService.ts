@@ -1,5 +1,4 @@
 import api from "./api";
-
 import type { Transfer } from "../types/transfer";
 
 const ENDPOINT = "/Transfer";
@@ -27,11 +26,21 @@ export async function createTransfer(
     ENDPOINT,
     {
       sourceLocationId: transfer.sourceLocationId,
+
       destinationLocationId:
         transfer.destinationLocationId,
+
       drinkId: transfer.drinkId,
+
       quantity: transfer.quantity,
+
+      pricePerBottle: transfer.pricePerBottle,
+
+      totalPrice:
+        transfer.quantity * transfer.pricePerBottle,
+
       reason: transfer.reason,
+
       transferDate:
         transfer.transferDate || null,
     }
@@ -45,8 +54,32 @@ export async function updateTransfer(
   transfer: Transfer
 ): Promise<void> {
   await api.put(`${ENDPOINT}/${id}`, {
+    sourceLocationId: transfer.sourceLocationId,
+
+    destinationLocationId:
+      transfer.destinationLocationId,
+
+    drinkId: transfer.drinkId,
+
+    quantity: transfer.quantity,
+
+    pricePerBottle: transfer.pricePerBottle,
+
+    totalPrice:
+      transfer.quantity * transfer.pricePerBottle,
+
     reason: transfer.reason,
+
     status:
       transfer.status ?? "Completed",
+
+    transferDate:
+      transfer.transferDate || null,
   });
+}
+
+export async function deleteTransfer(
+  id: string
+): Promise<void> {
+  await api.delete(`${ENDPOINT}/${id}`);
 }

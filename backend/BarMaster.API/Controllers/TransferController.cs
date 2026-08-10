@@ -13,7 +13,9 @@ public class TransferController : ControllerBase
 {
     private readonly TransferService _transferService;
 
-    public TransferController(TransferService transferService)
+    public TransferController(
+        TransferService transferService
+    )
     {
         _transferService = transferService;
     }
@@ -21,7 +23,8 @@ public class TransferController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<Transfer>>> GetTransfers()
     {
-        var transfers = await _transferService.GetAllAsync();
+        var transfers =
+            await _transferService.GetAllAsync();
 
         return Ok(transfers);
     }
@@ -31,7 +34,8 @@ public class TransferController : ControllerBase
         string id
     )
     {
-        var transfer = await _transferService.GetByIdAsync(id);
+        var transfer =
+            await _transferService.GetByIdAsync(id);
 
         if (transfer is null)
         {
@@ -49,7 +53,8 @@ public class TransferController : ControllerBase
         CreateTransferDto dto
     )
     {
-        var result = await _transferService.CreateAsync(dto);
+        var result =
+            await _transferService.CreateAsync(dto);
 
         if (!result.Success || result.Transfer is null)
         {
@@ -61,7 +66,10 @@ public class TransferController : ControllerBase
 
         return CreatedAtAction(
             nameof(GetTransferById),
-            new { id = result.Transfer.Id },
+            new
+            {
+                id = result.Transfer.Id
+            },
             result.Transfer
         );
     }
@@ -72,23 +80,11 @@ public class TransferController : ControllerBase
         UpdateTransferDto dto
     )
     {
-        var result = await _transferService.UpdateAsync(id, dto);
-
-        if (!result.Success)
-        {
-            return NotFound(new
-            {
-                message = result.Message
-            });
-        }
-
-        return NoContent();
-    }
-
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteTransfer(string id)
-    {
-        var result = await _transferService.DeleteAsync(id);
+        var result =
+            await _transferService.UpdateAsync(
+                id,
+                dto
+            );
 
         if (!result.Success)
         {
@@ -98,6 +94,31 @@ public class TransferController : ControllerBase
             });
         }
 
-        return NoContent();
+        return Ok(new
+        {
+            message = result.Message
+        });
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteTransfer(
+        string id
+    )
+    {
+        var result =
+            await _transferService.DeleteAsync(id);
+
+        if (!result.Success)
+        {
+            return BadRequest(new
+            {
+                message = result.Message
+            });
+        }
+
+        return Ok(new
+        {
+            message = result.Message
+        });
     }
 }

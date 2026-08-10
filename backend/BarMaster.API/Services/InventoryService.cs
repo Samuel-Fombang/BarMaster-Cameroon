@@ -60,8 +60,14 @@ public class InventoryService
     }
 
     public async Task<
-        (bool Success, string Message, Inventory? Inventory)
-    > CreateAsync(CreateInventoryDto dto)
+        (
+            bool Success,
+            string Message,
+            Inventory? Inventory
+        )
+    > CreateAsync(
+        CreateInventoryDto dto
+    )
     {
         if (dto.Quantity < 0)
         {
@@ -81,9 +87,19 @@ public class InventoryService
             );
         }
 
-        var drink = await _drinkRepository.GetByIdAsync(
-            dto.DrinkId
-        );
+        if (dto.PricePerBottle < 0)
+        {
+            return (
+                false,
+                "Price per bottle cannot be negative.",
+                null
+            );
+        }
+
+        var drink =
+            await _drinkRepository.GetByIdAsync(
+                dto.DrinkId
+            );
 
         if (drink is null)
         {
@@ -94,9 +110,10 @@ public class InventoryService
             );
         }
 
-        var location = await _locationRepository.GetByIdAsync(
-            dto.LocationId
-        );
+        var location =
+            await _locationRepository.GetByIdAsync(
+                dto.LocationId
+            );
 
         if (location is null)
         {
@@ -123,18 +140,38 @@ public class InventoryService
             );
         }
 
-        var inventory = new Inventory
-        {
-            DrinkId = dto.DrinkId,
-            LocationId = dto.LocationId,
-            Quantity = dto.Quantity,
-            MinimumQuantity = dto.MinimumQuantity,
-            IsActive = dto.IsActive,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+        var inventory =
+            new Inventory
+            {
+                DrinkId =
+                    dto.DrinkId,
 
-        await _inventoryRepository.CreateAsync(inventory);
+                LocationId =
+                    dto.LocationId,
+
+                Quantity =
+                    dto.Quantity,
+
+                MinimumQuantity =
+                    dto.MinimumQuantity,
+
+                PricePerBottle =
+                    dto.PricePerBottle,
+
+                IsActive =
+                    dto.IsActive,
+
+                CreatedAt =
+                    DateTime.UtcNow,
+
+                UpdatedAt =
+                    DateTime.UtcNow
+            };
+
+        await _inventoryRepository
+            .CreateAsync(
+                inventory
+            );
 
         return (
             true,
@@ -143,7 +180,12 @@ public class InventoryService
         );
     }
 
-    public async Task<(bool Success, string Message)> UpdateAsync(
+    public async Task<
+        (
+            bool Success,
+            string Message
+        )
+    > UpdateAsync(
         string id,
         UpdateInventoryDto dto
     )
@@ -164,8 +206,17 @@ public class InventoryService
             );
         }
 
+        if (dto.PricePerBottle < 0)
+        {
+            return (
+                false,
+                "Price per bottle cannot be negative."
+            );
+        }
+
         var existingInventory =
-            await _inventoryRepository.GetByIdAsync(id);
+            await _inventoryRepository
+                .GetByIdAsync(id);
 
         if (existingInventory is null)
         {
@@ -175,11 +226,20 @@ public class InventoryService
             );
         }
 
-        existingInventory.Quantity = dto.Quantity;
+        existingInventory.Quantity =
+            dto.Quantity;
+
         existingInventory.MinimumQuantity =
             dto.MinimumQuantity;
-        existingInventory.IsActive = dto.IsActive;
-        existingInventory.UpdatedAt = DateTime.UtcNow;
+
+        existingInventory.PricePerBottle =
+            dto.PricePerBottle;
+
+        existingInventory.IsActive =
+            dto.IsActive;
+
+        existingInventory.UpdatedAt =
+            DateTime.UtcNow;
 
         var updated =
             await _inventoryRepository.UpdateAsync(
@@ -202,12 +262,17 @@ public class InventoryService
     }
 
     public async Task<
-        (bool Success, string Message, Inventory? Inventory)
+        (
+            bool Success,
+            string Message,
+            Inventory? Inventory
+        )
     > IncreaseStockAsync(
         string drinkId,
         string locationId,
         int quantity,
-        int minimumQuantity = 0
+        int minimumQuantity = 0,
+        decimal? pricePerBottle = null
     )
     {
         if (quantity <= 0)
@@ -220,7 +285,10 @@ public class InventoryService
         }
 
         var drink =
-            await _drinkRepository.GetByIdAsync(drinkId);
+            await _drinkRepository
+                .GetByIdAsync(
+                    drinkId
+                );
 
         if (drink is null)
         {
@@ -232,7 +300,10 @@ public class InventoryService
         }
 
         var location =
-            await _locationRepository.GetByIdAsync(locationId);
+            await _locationRepository
+                .GetByIdAsync(
+                    locationId
+                );
 
         if (location is null)
         {
@@ -252,23 +323,44 @@ public class InventoryService
 
         if (inventory is null)
         {
-            inventory = new Inventory
-            {
-                DrinkId = drinkId,
-                LocationId = locationId,
-                Quantity = quantity,
-                MinimumQuantity = Math.Max(
-                    minimumQuantity,
-                    0
-                ),
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+            inventory =
+                new Inventory
+                {
+                    DrinkId =
+                        drinkId,
 
-            await _inventoryRepository.CreateAsync(
-                inventory
-            );
+                    LocationId =
+                        locationId,
+
+                    Quantity =
+                        quantity,
+
+                    MinimumQuantity =
+                        Math.Max(
+                            minimumQuantity,
+                            0
+                        ),
+
+                    PricePerBottle =
+                        pricePerBottle.HasValue &&
+                        pricePerBottle.Value > 0
+                            ? pricePerBottle.Value
+                            : 0,
+
+                    IsActive =
+                        true,
+
+                    CreatedAt =
+                        DateTime.UtcNow,
+
+                    UpdatedAt =
+                        DateTime.UtcNow
+                };
+
+            await _inventoryRepository
+                .CreateAsync(
+                    inventory
+                );
 
             return (
                 true,
@@ -277,8 +369,28 @@ public class InventoryService
             );
         }
 
-        inventory.Quantity += quantity;
-        inventory.UpdatedAt = DateTime.UtcNow;
+        inventory.Quantity +=
+            quantity;
+
+        inventory.UpdatedAt =
+            DateTime.UtcNow;
+
+        /*
+         * Do not overwrite a manually entered
+         * inventory price.
+         *
+         * Only copy a supplied price when this
+         * inventory record currently has no price.
+         */
+        if (
+            inventory.PricePerBottle <= 0 &&
+            pricePerBottle.HasValue &&
+            pricePerBottle.Value > 0
+        )
+        {
+            inventory.PricePerBottle =
+                pricePerBottle.Value;
+        }
 
         if (
             inventory.MinimumQuantity == 0 &&
@@ -321,7 +433,11 @@ public class InventoryService
     }
 
     public async Task<
-        (bool Success, string Message, Inventory? Inventory)
+        (
+            bool Success,
+            string Message,
+            Inventory? Inventory
+        )
     > DecreaseStockAsync(
         string drinkId,
         string locationId,
@@ -353,7 +469,10 @@ public class InventoryService
             );
         }
 
-        if (inventory.Quantity < quantity)
+        if (
+            inventory.Quantity <
+            quantity
+        )
         {
             return (
                 false,
@@ -362,10 +481,15 @@ public class InventoryService
             );
         }
 
-        inventory.Quantity -= quantity;
-        inventory.UpdatedAt = DateTime.UtcNow;
+        inventory.Quantity -=
+            quantity;
 
-        if (inventory.Id is null)
+        inventory.UpdatedAt =
+            DateTime.UtcNow;
+
+        if (
+            inventory.Id is null
+        )
         {
             return (
                 false,
@@ -396,7 +520,12 @@ public class InventoryService
         );
     }
 
-    public async Task<(bool Success, string Message)> TransferStockAsync(
+    public async Task<
+        (
+            bool Success,
+            string Message
+        )
+    > TransferStockAsync(
         string drinkId,
         string fromLocationId,
         string toLocationId,
@@ -411,7 +540,10 @@ public class InventoryService
             );
         }
 
-        if (fromLocationId == toLocationId)
+        if (
+            fromLocationId ==
+            toLocationId
+        )
         {
             return (
                 false,
@@ -426,7 +558,9 @@ public class InventoryService
                     fromLocationId
                 );
 
-        if (sourceInventory is null)
+        if (
+            sourceInventory is null
+        )
         {
             return (
                 false,
@@ -434,7 +568,10 @@ public class InventoryService
             );
         }
 
-        if (sourceInventory.Quantity < quantity)
+        if (
+            sourceInventory.Quantity <
+            quantity
+        )
         {
             return (
                 false,
@@ -443,11 +580,14 @@ public class InventoryService
         }
 
         var destinationLocation =
-            await _locationRepository.GetByIdAsync(
-                toLocationId
-            );
+            await _locationRepository
+                .GetByIdAsync(
+                    toLocationId
+                );
 
-        if (destinationLocation is null)
+        if (
+            destinationLocation is null
+        )
         {
             return (
                 false,
@@ -462,7 +602,9 @@ public class InventoryService
                 quantity
             );
 
-        if (!decreaseResult.Success)
+        if (
+            !decreaseResult.Success
+        )
         {
             return (
                 false,
@@ -470,21 +612,33 @@ public class InventoryService
             );
         }
 
+        /*
+         * If the destination inventory does not
+         * exist yet, use the source inventory price
+         * as its initial inventory price.
+         *
+         * Existing destination prices are not
+         * overwritten.
+         */
         var increaseResult =
             await IncreaseStockAsync(
                 drinkId,
                 toLocationId,
                 quantity,
-                sourceInventory.MinimumQuantity
+                sourceInventory.MinimumQuantity,
+                sourceInventory.PricePerBottle
             );
 
-        if (!increaseResult.Success)
+        if (
+            !increaseResult.Success
+        )
         {
             await IncreaseStockAsync(
                 drinkId,
                 fromLocationId,
                 quantity,
-                sourceInventory.MinimumQuantity
+                sourceInventory.MinimumQuantity,
+                sourceInventory.PricePerBottle
             );
 
             return (
@@ -499,14 +653,22 @@ public class InventoryService
         );
     }
 
-    public async Task<(bool Success, string Message)> DeleteAsync(
+    public async Task<
+        (
+            bool Success,
+            string Message
+        )
+    > DeleteAsync(
         string id
     )
     {
         var existingInventory =
-            await _inventoryRepository.GetByIdAsync(id);
+            await _inventoryRepository
+                .GetByIdAsync(id);
 
-        if (existingInventory is null)
+        if (
+            existingInventory is null
+        )
         {
             return (
                 false,
@@ -515,7 +677,8 @@ public class InventoryService
         }
 
         var deleted =
-            await _inventoryRepository.DeleteAsync(id);
+            await _inventoryRepository
+                .DeleteAsync(id);
 
         if (!deleted)
         {

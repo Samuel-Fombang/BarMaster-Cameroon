@@ -4,6 +4,7 @@ import {
   EditOutlined,
   SearchOutlined,
 } from "@mui/icons-material";
+
 import {
   Alert,
   Box,
@@ -15,424 +16,1024 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { DataGrid, type GridColDef } from "@mui/x-data-grid";
-import { useEffect, useMemo, useState } from "react";
+
+import {
+  DataGrid,
+  type GridColDef,
+} from "@mui/x-data-grid";
+
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import DeleteInventoryDialog from "../components/inventory/DeleteInventoryDialog";
 import InventoryDialog from "../components/inventory/InventoryDialog";
-import { getDrinks } from "../services/drinkService";
+
+import {
+  getDrinks,
+} from "../services/drinkService";
+
 import {
   createInventory,
   deleteInventory,
   getInventory,
   updateInventory,
 } from "../services/inventoryService";
-import { getLocations } from "../services/locationService";
+
+import {
+  getLocations,
+} from "../services/locationService";
+
 import type { Drink } from "../types/drink";
-import type { Inventory as InventoryType } from "../types/inventory";
+
+import type {
+  Inventory as InventoryType,
+} from "../types/inventory";
+
 import type { Location } from "../types/location";
 
-type InventoryRow = InventoryType & {
-  drinkName: string;
-  drinkBrand: string;
-  bottleSize: string;
-  locationName: string;
-  locationType: string;
-};
+type InventoryRow =
+  InventoryType & {
+    drinkName: string;
+
+    drinkBrand: string;
+
+    bottleSize: string;
+
+    locationName: string;
+
+    locationType: string;
+
+    calculatedTotalStockValue:
+      number;
+  };
 
 function Inventory() {
-  const [inventory, setInventory] = useState<InventoryType[]>([]);
-  const [drinks, setDrinks] = useState<Drink[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [
+    inventory,
+    setInventory,
+  ] =
+    useState<
+      InventoryType[]
+    >([]);
 
-  const [search, setSearch] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
+  const [
+    drinks,
+    setDrinks,
+  ] =
+    useState<Drink[]>([]);
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedInventory, setSelectedInventory] =
-    useState<InventoryType | null>(null);
+  const [
+    locations,
+    setLocations,
+  ] =
+    useState<Location[]>(
+      []
+    );
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [inventoryToDelete, setInventoryToDelete] =
-    useState<InventoryType | null>(null);
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(true);
 
-  const [deleting, setDeleting] = useState(false);
+  const [
+    search,
+    setSearch,
+  ] =
+    useState("");
 
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] =
-    useState<"success" | "error">("success");
+  const [
+    locationFilter,
+    setLocationFilter,
+  ] =
+    useState("");
 
-  const loadData = async () => {
-    setLoading(true);
+  const [
+    dialogOpen,
+    setDialogOpen,
+  ] =
+    useState(false);
 
-    try {
-      const [inventoryData, drinkData, locationData] =
-        await Promise.all([
-          getInventory(),
-          getDrinks(),
-          getLocations(),
-        ]);
+  const [
+    selectedInventory,
+    setSelectedInventory,
+  ] =
+    useState<
+      InventoryType | null
+    >(null);
 
-      setInventory(inventoryData);
-      setDrinks(drinkData);
-      setLocations(locationData);
-    } catch (error) {
-      console.error("Could not load inventory data:", error);
+  const [
+    deleteDialogOpen,
+    setDeleteDialogOpen,
+  ] =
+    useState(false);
 
-      setMessageType("error");
-      setMessage(
-        "Could not load inventory. Check that the backend is running."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [
+    inventoryToDelete,
+    setInventoryToDelete,
+  ] =
+    useState<
+      InventoryType | null
+    >(null);
+
+  const [
+    deleting,
+    setDeleting,
+  ] =
+    useState(false);
+
+  const [
+    message,
+    setMessage,
+  ] =
+    useState("");
+
+  const [
+    messageType,
+    setMessageType,
+  ] =
+    useState<
+      "success" | "error"
+    >("success");
+
+  const normaliseId = (
+    value: unknown
+  ) =>
+    String(value ?? "")
+      .trim()
+      .toLowerCase();
+
+  const loadData =
+    async () => {
+      setLoading(true);
+
+      try {
+        const [
+          inventoryData,
+          drinkData,
+          locationData,
+        ] =
+          await Promise.all(
+            [
+              getInventory(),
+
+              getDrinks(),
+
+              getLocations(),
+            ]
+          );
+
+        setInventory(
+          inventoryData
+        );
+
+        setDrinks(
+          drinkData
+        );
+
+        setLocations(
+          locationData
+        );
+      } catch (error) {
+        console.error(
+          "Could not load inventory data:",
+          error
+        );
+
+        setMessageType(
+          "error"
+        );
+
+        setMessage(
+          "Could not load inventory. Check that the backend is running."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
   useEffect(() => {
     void loadData();
   }, []);
 
-  const rows = useMemo<InventoryRow[]>(() => {
-    return inventory.map((item) => {
-      const drink = drinks.find(
-        (drinkItem) => drinkItem.id === item.drinkId
+  const rows =
+    useMemo<
+      InventoryRow[]
+    >(() => {
+      return inventory.map(
+        (item) => {
+          const drink =
+            drinks.find(
+              (
+                drinkItem
+              ) =>
+                normaliseId(
+                  drinkItem.id
+                ) ===
+                normaliseId(
+                  item.drinkId
+                )
+            );
+
+          const location =
+            locations.find(
+              (
+                locationItem
+              ) =>
+                normaliseId(
+                  locationItem.id
+                ) ===
+                normaliseId(
+                  item.locationId
+                )
+            );
+
+          const quantity =
+            Number(
+              item.quantity
+            ) || 0;
+
+          const pricePerBottle =
+            Number(
+              item.pricePerBottle
+            ) || 0;
+
+          const calculatedTotalStockValue =
+            quantity *
+            pricePerBottle;
+
+          return {
+            ...item,
+
+            quantity,
+
+            pricePerBottle,
+
+            totalStockValue:
+              calculatedTotalStockValue,
+
+            calculatedTotalStockValue,
+
+            drinkName:
+              drink?.name ??
+              "Unknown drink",
+
+            drinkBrand:
+              drink?.brand ??
+              "",
+
+            bottleSize:
+              drink?.bottleSize ??
+              "",
+
+            locationName:
+              location?.name ??
+              "Unknown location",
+
+            locationType:
+              location?.type ??
+              "",
+          };
+        }
+      );
+    }, [
+      inventory,
+      drinks,
+      locations,
+    ]);
+
+  const filteredRows =
+    useMemo(() => {
+      const searchText =
+        search
+          .trim()
+          .toLowerCase();
+
+      return rows.filter(
+        (row) => {
+          const matchesSearch =
+            !searchText ||
+            [
+              row.drinkName,
+
+              row.drinkBrand,
+
+              row.bottleSize,
+
+              row.locationName,
+
+              row.locationType,
+
+              String(
+                row.pricePerBottle
+              ),
+
+              String(
+                row.calculatedTotalStockValue
+              ),
+            ].some(
+              (value) =>
+                value
+                  .toLowerCase()
+                  .includes(
+                    searchText
+                  )
+            );
+
+          const matchesLocation =
+            !locationFilter ||
+            normaliseId(
+              row.locationId
+            ) ===
+              normaliseId(
+                locationFilter
+              );
+
+          return (
+            matchesSearch &&
+            matchesLocation
+          );
+        }
+      );
+    }, [
+      rows,
+      search,
+      locationFilter,
+    ]);
+
+  const handleOpenAdd =
+    () => {
+      setSelectedInventory(
+        null
       );
 
-      const location = locations.find(
-        (locationItem) =>
-          locationItem.id === item.locationId
+      setDialogOpen(
+        true
+      );
+    };
+
+  const handleOpenEdit = (
+    item: InventoryType
+  ) => {
+    setSelectedInventory(
+      item
+    );
+
+    setDialogOpen(
+      true
+    );
+  };
+
+  const handleCloseDialog =
+    () => {
+      setDialogOpen(
+        false
       );
 
-      return {
-        ...item,
-        drinkName: drink?.name ?? "Unknown drink",
-        drinkBrand: drink?.brand ?? "",
-        bottleSize: drink?.bottleSize ?? "",
-        locationName:
-          location?.name ?? "Unknown location",
-        locationType: location?.type ?? "",
-      };
-    });
-  }, [inventory, drinks, locations]);
+      setSelectedInventory(
+        null
+      );
+    };
 
-  const filteredRows = useMemo(() => {
-    const searchText = search.trim().toLowerCase();
+  const handleSave =
+    async (
+      item: InventoryType
+    ) => {
+      try {
+        if (
+          selectedInventory?.id
+        ) {
+          await updateInventory(
+            selectedInventory.id,
+            item
+          );
 
-    return rows.filter((row) => {
-      const matchesSearch =
-        !searchText ||
-        [
-          row.drinkName,
-          row.drinkBrand,
-          row.bottleSize,
-          row.locationName,
-          row.locationType,
-        ].some((value) =>
-          value.toLowerCase().includes(searchText)
+          setMessage(
+            "Inventory updated successfully."
+          );
+        } else {
+          await createInventory(
+            item
+          );
+
+          setMessage(
+            "Inventory added successfully."
+          );
+        }
+
+        setMessageType(
+          "success"
         );
 
-      const matchesLocation =
-        !locationFilter ||
-        row.locationId === locationFilter;
+        await loadData();
+      } catch (error) {
+        console.error(
+          "Could not save inventory:",
+          error
+        );
 
-      return matchesSearch && matchesLocation;
-    });
-  }, [rows, search, locationFilter]);
+        setMessageType(
+          "error"
+        );
 
-  const handleOpenAdd = () => {
-    setSelectedInventory(null);
-    setDialogOpen(true);
+        setMessage(
+          "Could not save the inventory record. It may already exist for this drink and location."
+        );
+
+        throw error;
+      }
+    };
+
+  const handleOpenDelete = (
+    item: InventoryType
+  ) => {
+    setInventoryToDelete(
+      item
+    );
+
+    setDeleteDialogOpen(
+      true
+    );
   };
 
-  const handleOpenEdit = (item: InventoryType) => {
-    setSelectedInventory(item);
-    setDialogOpen(true);
-  };
+  const handleCloseDelete =
+    () => {
+      setDeleteDialogOpen(
+        false
+      );
 
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setSelectedInventory(null);
-  };
+      setInventoryToDelete(
+        null
+      );
+    };
 
-  const handleSave = async (item: InventoryType) => {
-    try {
-      if (selectedInventory?.id) {
-        await updateInventory(selectedInventory.id, item);
-        setMessage("Inventory updated successfully.");
-      } else {
-        await createInventory(item);
-        setMessage("Inventory added successfully.");
+  const handleDelete =
+    async () => {
+      if (
+        !inventoryToDelete?.id
+      ) {
+        return;
       }
 
-      setMessageType("success");
-      await loadData();
-    } catch (error) {
-      console.error("Could not save inventory:", error);
+      setDeleting(true);
 
-      setMessageType("error");
-      setMessage(
-        "Could not save the inventory record. It may already exist for this drink and location."
-      );
-
-      throw error;
-    }
-  };
-
-  const handleOpenDelete = (item: InventoryType) => {
-    setInventoryToDelete(item);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleCloseDelete = () => {
-    setDeleteDialogOpen(false);
-    setInventoryToDelete(null);
-  };
-
-  const handleDelete = async () => {
-    if (!inventoryToDelete?.id) {
-      return;
-    }
-
-    setDeleting(true);
-
-    try {
-      await deleteInventory(inventoryToDelete.id);
-
-      setMessageType("success");
-      setMessage("Inventory record deleted successfully.");
-
-      handleCloseDelete();
-      await loadData();
-    } catch (error) {
-      console.error("Could not delete inventory:", error);
-
-      setMessageType("error");
-      setMessage(
-        "Could not delete the inventory record."
-      );
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const columns: GridColDef<InventoryRow>[] = [
-    {
-      field: "drinkName",
-      headerName: "Drink",
-      flex: 1.1,
-      minWidth: 160,
-    },
-    {
-      field: "drinkBrand",
-      headerName: "Brand",
-      flex: 1,
-      minWidth: 160,
-      valueGetter: (_value, row) =>
-        row.drinkBrand || "—",
-    },
-    {
-      field: "bottleSize",
-      headerName: "Size",
-      width: 100,
-      valueGetter: (_value, row) =>
-        row.bottleSize || "—",
-    },
-    {
-      field: "locationName",
-      headerName: "Location",
-      flex: 1.2,
-      minWidth: 180,
-    },
-    {
-      field: "quantity",
-      headerName: "Quantity",
-      width: 120,
-    },
-    {
-      field: "minimumQuantity",
-      headerName: "Minimum",
-      width: 120,
-    },
-    {
-      field: "stockStatus",
-      headerName: "Stock Status",
-      width: 150,
-      sortable: false,
-      filterable: false,
-      renderCell: (params) => {
-        const quantity = params.row.quantity;
-        const minimum = params.row.minimumQuantity;
-
-        if (quantity === 0) {
-          return (
-            <Chip
-              size="small"
-              label="Out of Stock"
-              color="error"
-            />
-          );
-        }
-
-        if (quantity <= minimum) {
-          return (
-            <Chip
-              size="small"
-              label="Low Stock"
-              color="warning"
-            />
-          );
-        }
-
-        return (
-          <Chip
-            size="small"
-            label="Available"
-            color="success"
-          />
+      try {
+        await deleteInventory(
+          inventoryToDelete.id
         );
+
+        setMessageType(
+          "success"
+        );
+
+        setMessage(
+          "Inventory record deleted successfully."
+        );
+
+        handleCloseDelete();
+
+        await loadData();
+      } catch (error) {
+        console.error(
+          "Could not delete inventory:",
+          error
+        );
+
+        setMessageType(
+          "error"
+        );
+
+        setMessage(
+          "Could not delete the inventory record."
+        );
+      } finally {
+        setDeleting(false);
+      }
+    };
+
+  const columns:
+    GridColDef<InventoryRow>[] =
+    [
+      {
+        field:
+          "drinkName",
+
+        headerName:
+          "Drink",
+
+        flex: 1.1,
+
+        minWidth:
+          160,
       },
-    },
-    {
-      field: "updatedAt",
-      headerName: "Last Updated",
-      flex: 1,
-      minWidth: 180,
-      valueFormatter: (value) => {
-        if (!value) {
-          return "—";
-        }
 
-        return new Date(String(value)).toLocaleString();
+      {
+        field:
+          "drinkBrand",
+
+        headerName:
+          "Brand",
+
+        flex: 1,
+
+        minWidth:
+          150,
+
+        valueGetter:
+          (
+            _value,
+            row
+          ) =>
+            row.drinkBrand ||
+            "—",
       },
-    },
-    {
-      field: "activeStatus",
-      headerName: "Status",
-      width: 110,
-      sortable: false,
-      filterable: false,
-      renderCell: (params) => (
-        <Chip
-          size="small"
-          label={params.row.isActive ? "Active" : "Inactive"}
-          color={params.row.isActive ? "success" : "default"}
-        />
-      ),
-    },
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 210,
-      sortable: false,
-      filterable: false,
-      renderCell: (params) => (
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            height: "100%",
-          }}
-        >
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<EditOutlined />}
-            onClick={() => handleOpenEdit(params.row)}
-          >
-            Edit
-          </Button>
 
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
-            startIcon={<DeleteOutlined />}
-            onClick={() => handleOpenDelete(params.row)}
-          >
-            Delete
-          </Button>
-        </Box>
-      ),
-    },
-  ];
+      {
+        field:
+          "bottleSize",
 
-  const totalQuantity = inventory.reduce(
-    (total, item) => total + item.quantity,
-    0
-  );
+        headerName:
+          "Size",
 
-  const warehouseQuantity = rows
-    .filter((row) => row.locationType === "Warehouse")
-    .reduce((total, row) => total + row.quantity, 0);
+        width:
+          90,
 
-  const salesAreaQuantity = rows
-    .filter((row) => row.locationType === "SalesArea")
-    .reduce((total, row) => total + row.quantity, 0);
+        valueGetter:
+          (
+            _value,
+            row
+          ) =>
+            row.bottleSize ||
+            "—",
+      },
 
-  const lowStockCount = inventory.filter(
-    (item) =>
-      item.quantity > 0 &&
-      item.quantity <= item.minimumQuantity
-  ).length;
+      {
+        field:
+          "locationName",
 
-  const deleteDrinkName = useMemo(() => {
-    if (!inventoryToDelete) {
-      return "";
-    }
+        headerName:
+          "Location",
 
-    return (
-      drinks.find(
-        (drink) =>
-          drink.id === inventoryToDelete.drinkId
-      )?.name ?? ""
+        flex: 1,
+
+        minWidth:
+          160,
+      },
+
+      {
+        field:
+          "quantity",
+
+        headerName:
+          "Quantity",
+
+        width:
+          105,
+
+        type:
+          "number",
+      },
+
+      {
+        field:
+          "pricePerBottle",
+
+        headerName:
+          "Price/Bottle",
+
+        minWidth:
+          140,
+
+        type:
+          "number",
+
+        valueFormatter:
+          (value) => {
+            const amount =
+              Number(
+                value
+              ) || 0;
+
+            return `${amount.toLocaleString()} FCFA`;
+          },
+      },
+
+      {
+        field:
+          "calculatedTotalStockValue",
+
+        headerName:
+          "Stock Value",
+
+        minWidth:
+          155,
+
+        type:
+          "number",
+
+        valueFormatter:
+          (value) => {
+            const amount =
+              Number(
+                value
+              ) || 0;
+
+            return `${amount.toLocaleString()} FCFA`;
+          },
+      },
+
+      {
+        field:
+          "minimumQuantity",
+
+        headerName:
+          "Minimum",
+
+        width:
+          105,
+      },
+
+      {
+        field:
+          "stockStatus",
+
+        headerName:
+          "Stock Status",
+
+        width:
+          140,
+
+        sortable:
+          false,
+
+        filterable:
+          false,
+
+        renderCell:
+          (params) => {
+            const quantity =
+              params.row
+                .quantity;
+
+            const minimum =
+              params.row
+                .minimumQuantity;
+
+            if (
+              quantity ===
+              0
+            ) {
+              return (
+                <Chip
+                  size="small"
+                  label="Out of Stock"
+                  color="error"
+                />
+              );
+            }
+
+            if (
+              quantity <=
+              minimum
+            ) {
+              return (
+                <Chip
+                  size="small"
+                  label="Low Stock"
+                  color="warning"
+                />
+              );
+            }
+
+            return (
+              <Chip
+                size="small"
+                label="Available"
+                color="success"
+              />
+            );
+          },
+      },
+
+      {
+        field:
+          "updatedAt",
+
+        headerName:
+          "Last Updated",
+
+        minWidth:
+          175,
+
+        valueFormatter:
+          (value) => {
+            if (!value) {
+              return "—";
+            }
+
+            return new Date(
+              String(
+                value
+              )
+            ).toLocaleString();
+          },
+      },
+
+      {
+        field:
+          "activeStatus",
+
+        headerName:
+          "Status",
+
+        width:
+          100,
+
+        sortable:
+          false,
+
+        filterable:
+          false,
+
+        renderCell:
+          (params) => (
+            <Chip
+              size="small"
+              label={
+                params.row
+                  .isActive
+                  ? "Active"
+                  : "Inactive"
+              }
+              color={
+                params.row
+                  .isActive
+                  ? "success"
+                  : "default"
+              }
+            />
+          ),
+      },
+
+      {
+        field:
+          "actions",
+
+        headerName:
+          "Actions",
+
+        width:
+          210,
+
+        sortable:
+          false,
+
+        filterable:
+          false,
+
+        renderCell:
+          (params) => (
+            <Box
+              sx={{
+                display:
+                  "flex",
+
+                alignItems:
+                  "center",
+
+                gap: 1,
+
+                height:
+                  "100%",
+              }}
+            >
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={
+                  <EditOutlined />
+                }
+                onClick={() =>
+                  handleOpenEdit(
+                    params.row
+                  )
+                }
+              >
+                Edit
+              </Button>
+
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                startIcon={
+                  <DeleteOutlined />
+                }
+                onClick={() =>
+                  handleOpenDelete(
+                    params.row
+                  )
+                }
+              >
+                Delete
+              </Button>
+            </Box>
+          ),
+      },
+    ];
+
+  const totalQuantity =
+    rows.reduce(
+      (
+        total,
+        item
+      ) =>
+        total +
+        Number(
+          item.quantity ||
+            0
+        ),
+      0
     );
-  }, [inventoryToDelete, drinks]);
 
-  const deleteLocationName = useMemo(() => {
-    if (!inventoryToDelete) {
-      return "";
-    }
-
-    return (
-      locations.find(
-        (location) =>
-          location.id === inventoryToDelete.locationId
-      )?.name ?? ""
+  const totalInventoryValue =
+    rows.reduce(
+      (
+        total,
+        item
+      ) =>
+        total +
+        Number(
+          item.calculatedTotalStockValue ||
+            0
+        ),
+      0
     );
-  }, [inventoryToDelete, locations]);
+
+  const warehouseQuantity =
+    rows
+      .filter(
+        (row) =>
+          row.locationType ===
+          "Warehouse"
+      )
+      .reduce(
+        (
+          total,
+          row
+        ) =>
+          total +
+          Number(
+            row.quantity ||
+              0
+          ),
+        0
+      );
+
+  const salesAreaQuantity =
+    rows
+      .filter(
+        (row) =>
+          row.locationType ===
+          "SalesArea"
+      )
+      .reduce(
+        (
+          total,
+          row
+        ) =>
+          total +
+          Number(
+            row.quantity ||
+              0
+          ),
+        0
+      );
+
+  const lowStockCount =
+    rows.filter(
+      (item) =>
+        item.quantity >
+          0 &&
+        item.quantity <=
+          item.minimumQuantity
+    ).length;
+
+  const deleteDrinkName =
+    useMemo(() => {
+      if (
+        !inventoryToDelete
+      ) {
+        return "";
+      }
+
+      return (
+        drinks.find(
+          (drink) =>
+            normaliseId(
+              drink.id
+            ) ===
+            normaliseId(
+              inventoryToDelete.drinkId
+            )
+        )?.name ?? ""
+      );
+    }, [
+      inventoryToDelete,
+      drinks,
+    ]);
+
+  const deleteLocationName =
+    useMemo(() => {
+      if (
+        !inventoryToDelete
+      ) {
+        return "";
+      }
+
+      return (
+        locations.find(
+          (location) =>
+            normaliseId(
+              location.id
+            ) ===
+            normaliseId(
+              inventoryToDelete.locationId
+            )
+        )?.name ?? ""
+      );
+    }, [
+      inventoryToDelete,
+      locations,
+    ]);
+
+  const summaryCardSx = {
+    bgcolor:
+      "background.paper",
+
+    border:
+      "1px solid #e5e7eb",
+
+    borderRadius:
+      3,
+
+    p: 2,
+  };
 
   return (
     <Box>
       <Box
         sx={{
-          display: "flex",
-          flexDirection: {
-            xs: "column",
-            sm: "row",
-          },
-          justifyContent: "space-between",
-          alignItems: {
-            xs: "stretch",
-            sm: "center",
-          },
+          display:
+            "flex",
+
+          flexDirection:
+            {
+              xs:
+                "column",
+
+              sm:
+                "row",
+            },
+
+          justifyContent:
+            "space-between",
+
+          alignItems:
+            {
+              xs:
+                "stretch",
+
+              sm:
+                "center",
+            },
+
           gap: 2,
+
           mb: 3,
         }}
       >
         <Box>
-          <Typography variant="h4">Inventory</Typography>
+          <Typography variant="h4">
+            Inventory
+          </Typography>
 
           <Typography color="text.secondary">
-            Manage drink quantities at every location.
+            Manage drink quantities, bottle prices and stock values at every location.
           </Typography>
         </Box>
 
         <Button
           variant="contained"
-          startIcon={<AddOutlined />}
-          onClick={handleOpenAdd}
+          startIcon={
+            <AddOutlined />
+          }
+          onClick={
+            handleOpenAdd
+          }
         >
           Add Inventory
         </Button>
@@ -440,22 +1041,30 @@ function Inventory() {
 
       <Box
         sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(4, 1fr)",
-          },
+          display:
+            "grid",
+
+          gridTemplateColumns:
+            {
+              xs:
+                "1fr",
+
+              sm:
+                "repeat(2, 1fr)",
+
+              lg:
+                "repeat(5, 1fr)",
+            },
+
           gap: 2,
+
           mb: 3,
         }}
       >
         <Box
-          sx={{
-            bgcolor: "background.paper",
-            border: "1px solid #e5e7eb",
-            borderRadius: 3,
-            p: 2,
-          }}
+          sx={
+            summaryCardSx
+          }
         >
           <Typography color="text.secondary">
             Total Bottles
@@ -467,12 +1076,24 @@ function Inventory() {
         </Box>
 
         <Box
-          sx={{
-            bgcolor: "background.paper",
-            border: "1px solid #e5e7eb",
-            borderRadius: 3,
-            p: 2,
-          }}
+          sx={
+            summaryCardSx
+          }
+        >
+          <Typography color="text.secondary">
+            Inventory Value
+          </Typography>
+
+          <Typography variant="h5">
+            {totalInventoryValue.toLocaleString()}{" "}
+            FCFA
+          </Typography>
+        </Box>
+
+        <Box
+          sx={
+            summaryCardSx
+          }
         >
           <Typography color="text.secondary">
             Warehouse Stock
@@ -484,12 +1105,9 @@ function Inventory() {
         </Box>
 
         <Box
-          sx={{
-            bgcolor: "background.paper",
-            border: "1px solid #e5e7eb",
-            borderRadius: 3,
-            p: 2,
-          }}
+          sx={
+            summaryCardSx
+          }
         >
           <Typography color="text.secondary">
             Bar Stock
@@ -501,12 +1119,9 @@ function Inventory() {
         </Box>
 
         <Box
-          sx={{
-            bgcolor: "background.paper",
-            border: "1px solid #e5e7eb",
-            borderRadius: 3,
-            p: 2,
-          }}
+          sx={
+            summaryCardSx
+          }
         >
           <Typography color="text.secondary">
             Low Stock Items
@@ -520,42 +1135,69 @@ function Inventory() {
 
       <Box
         sx={{
-          bgcolor: "background.paper",
-          border: "1px solid #e5e7eb",
-          borderRadius: 3,
+          bgcolor:
+            "background.paper",
+
+          border:
+            "1px solid #e5e7eb",
+
+          borderRadius:
+            3,
+
           p: 2,
         }}
       >
         <Box
           sx={{
-            display: "flex",
-            flexDirection: {
-              xs: "column",
-              sm: "row",
-            },
+            display:
+              "flex",
+
+            flexDirection:
+              {
+                xs:
+                  "column",
+
+                sm:
+                  "row",
+              },
+
             gap: 2,
+
             mb: 2,
           }}
         >
           <TextField
             placeholder="Search inventory..."
-            value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
+            value={
+              search
+            }
+            onChange={
+              (
+                event
+              ) =>
+                setSearch(
+                  event
+                    .target
+                    .value
+                )
             }
             sx={{
               width: {
-                xs: "100%",
-                sm: 360,
+                xs:
+                  "100%",
+
+                sm:
+                  360,
               },
             }}
             slotProps={{
               input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchOutlined />
-                  </InputAdornment>
-                ),
+                startAdornment:
+                  (
+                    <InputAdornment position="start">
+                      <SearchOutlined />
+                    </InputAdornment>
+                  ),
               },
             }}
           />
@@ -563,14 +1205,26 @@ function Inventory() {
           <TextField
             select
             label="Location"
-            value={locationFilter}
-            onChange={(event) =>
-              setLocationFilter(event.target.value)
+            value={
+              locationFilter
+            }
+            onChange={
+              (
+                event
+              ) =>
+                setLocationFilter(
+                  event
+                    .target
+                    .value
+                )
             }
             sx={{
               width: {
-                xs: "100%",
-                sm: 240,
+                xs:
+                  "100%",
+
+                sm:
+                  240,
               },
             }}
           >
@@ -578,78 +1232,153 @@ function Inventory() {
               All locations
             </MenuItem>
 
-            {locations.map((location) => (
-              <MenuItem
-                key={location.id ?? location.name}
-                value={location.id ?? ""}
-              >
-                {location.name}
-              </MenuItem>
-            ))}
+            {locations.map(
+              (
+                location
+              ) => (
+                <MenuItem
+                  key={
+                    location.id ??
+                    location.name
+                  }
+                  value={
+                    location.id ??
+                    ""
+                  }
+                >
+                  {
+                    location.name
+                  }
+                </MenuItem>
+              )
+            )}
           </TextField>
         </Box>
 
         <DataGrid
-          rows={filteredRows}
-          columns={columns}
-          loading={loading}
-          getRowId={(row) =>
-            row.id ??
-            `${row.drinkId}-${row.locationId}`
+          rows={
+            filteredRows
+          }
+          columns={
+            columns
+          }
+          loading={
+            loading
+          }
+          getRowId={
+            (row) =>
+              row.id ??
+              `${row.drinkId}-${row.locationId}`
           }
           disableRowSelectionOnClick
-          pageSizeOptions={[5, 10, 20]}
+          pageSizeOptions={[
+            5,
+            10,
+            20,
+          ]}
           initialState={{
-            pagination: {
-              paginationModel: {
-                pageSize: 10,
-                page: 0,
+            pagination:
+              {
+                paginationModel:
+                  {
+                    pageSize:
+                      10,
+
+                    page:
+                      0,
+                  },
               },
-            },
           }}
           sx={{
-            minHeight: 520,
-            border: 0,
-            "& .MuiDataGrid-columnHeaders": {
-              bgcolor: "#f8fafc",
-            },
+            minHeight:
+              520,
+
+            border:
+              0,
+
+            "& .MuiDataGrid-columnHeaders":
+              {
+                bgcolor:
+                  "#f8fafc",
+              },
           }}
         />
       </Box>
 
       <InventoryDialog
-        open={dialogOpen}
-        inventory={selectedInventory}
-        drinks={drinks}
-        locations={locations}
-        existingInventory={inventory}
-        onClose={handleCloseDialog}
-        onSave={handleSave}
+        open={
+          dialogOpen
+        }
+        inventory={
+          selectedInventory
+        }
+        drinks={
+          drinks
+        }
+        locations={
+          locations
+        }
+        existingInventory={
+          inventory
+        }
+        onClose={
+          handleCloseDialog
+        }
+        onSave={
+          handleSave
+        }
       />
 
       <DeleteInventoryDialog
-        open={deleteDialogOpen}
-        inventory={inventoryToDelete}
-        deleting={deleting}
-        drinkName={deleteDrinkName}
-        locationName={deleteLocationName}
-        onClose={handleCloseDelete}
-        onConfirm={handleDelete}
+        open={
+          deleteDialogOpen
+        }
+        inventory={
+          inventoryToDelete
+        }
+        deleting={
+          deleting
+        }
+        drinkName={
+          deleteDrinkName
+        }
+        locationName={
+          deleteLocationName
+        }
+        onClose={
+          handleCloseDelete
+        }
+        onConfirm={
+          handleDelete
+        }
       />
 
       <Snackbar
-        open={Boolean(message)}
-        autoHideDuration={4000}
-        onClose={() => setMessage("")}
+        open={Boolean(
+          message
+        )}
+        autoHideDuration={
+          4000
+        }
+        onClose={() =>
+          setMessage("")
+        }
         anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
+          vertical:
+            "bottom",
+
+          horizontal:
+            "right",
         }}
       >
         <Alert
-          severity={messageType}
+          severity={
+            messageType
+          }
           variant="filled"
-          onClose={() => setMessage("")}
+          onClose={() =>
+            setMessage("")
+          }
         >
           {message}
         </Alert>
