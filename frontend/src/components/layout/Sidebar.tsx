@@ -12,8 +12,10 @@ import {
   SellOutlined,
   SettingsOutlined,
   StorefrontOutlined,
+  StraightenOutlined,
   SwapHorizOutlined,
 } from "@mui/icons-material";
+
 import {
   Box,
   Divider,
@@ -23,7 +25,9 @@ import {
   ListItemText,
   Typography,
 } from "@mui/material";
+
 import type { ReactNode } from "react";
+
 import {
   NavLink,
   useLocation,
@@ -71,78 +75,98 @@ const menuItems: MenuItem[] = [
     icon: <DashboardOutlined />,
     allowedRoles: allRoles,
   },
+
   {
     label: "Drinks",
     path: "/drinks",
     icon: <LocalBarOutlined />,
     allowedRoles: stockRoles,
   },
+
   {
     label: "Categories",
     path: "/categories",
     icon: <CategoryOutlined />,
     allowedRoles: stockRoles,
   },
+
   {
     label: "Brands",
     path: "/brands",
     icon: <SellOutlined />,
     allowedRoles: stockRoles,
   },
+
+  {
+    label: "Bottle Sizes",
+    path: "/bottle-sizes",
+    icon: <StraightenOutlined />,
+    allowedRoles: stockRoles,
+  },
+
   {
     label: "Suppliers",
     path: "/suppliers",
     icon: <StorefrontOutlined />,
     allowedRoles: stockRoles,
   },
+
   {
     label: "Locations",
     path: "/locations",
     icon: <LocationOnOutlined />,
     allowedRoles: stockRoles,
   },
+
   {
     label: "Inventory",
     path: "/inventory",
     icon: <Inventory2Outlined />,
     allowedRoles: stockRoles,
   },
+
   {
     label: "Transfers",
     path: "/transfers",
     icon: <SwapHorizOutlined />,
     allowedRoles: stockRoles,
   },
+
   {
     label: "Purchases",
     path: "/purchases",
     icon: <LocalShippingOutlined />,
     allowedRoles: stockRoles,
   },
+
   {
     label: "Sales",
     path: "/sales",
     icon: <PointOfSaleOutlined />,
     allowedRoles: allRoles,
   },
+
   {
     label: "Expenses",
     path: "/expenses",
     icon: <ReceiptLongOutlined />,
     allowedRoles: managementRoles,
   },
+
   {
     label: "Workers",
     path: "/workers",
     icon: <GroupsOutlined />,
     allowedRoles: ["Admin"],
   },
+
   {
     label: "Reports",
     path: "/reports",
     icon: <AssessmentOutlined />,
     allowedRoles: managementRoles,
   },
+
   {
     label: "Settings",
     path: "/settings",
@@ -178,11 +202,11 @@ function normalizeRole(
 
 function Sidebar() {
   const location = useLocation();
+
   const { worker } = useAuth();
 
-  const workerRole = normalizeRole(
-    worker?.role
-  );
+  const workerRole =
+    normalizeRole(worker?.role);
 
   const visibleMenuItems =
     menuItems.filter((item) => {
@@ -226,7 +250,7 @@ function Sidebar() {
             letterSpacing: "-0.5px",
           }}
         >
-          BarMaster
+          IVY EASY LOUNGE
         </Typography>
 
         <Typography
@@ -236,7 +260,7 @@ function Sidebar() {
             color: "#9ca3af",
           }}
         >
-          Cameroon
+          
         </Typography>
       </Box>
 
@@ -270,12 +294,15 @@ function Sidebar() {
                   mb: 0.75,
                   minHeight: 48,
                   borderRadius: 2.5,
+
                   color: isActive
                     ? "#111111"
                     : "#d1d5db",
+
                   bgcolor: isActive
                     ? "#ffffff"
                     : "transparent",
+
                   "&:hover": {
                     bgcolor: isActive
                       ? "#ffffff"
@@ -286,6 +313,7 @@ function Sidebar() {
                 <ListItemIcon
                   sx={{
                     minWidth: 42,
+
                     color: isActive
                       ? "#111111"
                       : "#d1d5db",
@@ -303,6 +331,7 @@ function Sidebar() {
                           isActive
                             ? 700
                             : 500,
+
                         fontSize: 15,
                       },
                     },
@@ -337,7 +366,7 @@ function Sidebar() {
           >
             {worker?.firstName
               ? `${worker.firstName} ${worker.lastName}`
-              : "BarMaster User"}
+              : "IVY EASY LOUNGE User"}
           </Typography>
 
           <Typography
@@ -347,7 +376,8 @@ function Sidebar() {
               display: "block",
             }}
           >
-            {worker?.role ?? "Unknown role"}
+            {worker?.role ??
+              "Unknown role"}
           </Typography>
 
           <Typography
@@ -358,7 +388,7 @@ function Sidebar() {
               mt: 1,
             }}
           >
-            BarMaster v1.0
+            IVY EASY LOUNGE v1.0
           </Typography>
         </Box>
       </Box>

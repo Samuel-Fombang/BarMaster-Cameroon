@@ -1,6 +1,7 @@
 import {
   DeleteOutline,
   EditOutlined,
+  PictureAsPdfOutlined,
   SearchOutlined,
   SwapHorizOutlined,
 } from "@mui/icons-material";
@@ -33,6 +34,9 @@ import {
   useMemo,
   useState,
 } from "react";
+
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 import TransferDialog from "../components/transfers/TransferDialog";
 
@@ -72,28 +76,42 @@ type TransferRow = Transfer & {
 };
 
 function Transfers() {
-  const [transfers, setTransfers] =
-    useState<Transfer[]>([]);
+  const [
+    transfers,
+    setTransfers,
+  ] = useState<Transfer[]>([]);
 
-  const [inventory, setInventory] =
-    useState<Inventory[]>([]);
+  const [
+    inventory,
+    setInventory,
+  ] = useState<Inventory[]>([]);
 
-  const [drinks, setDrinks] =
-    useState<Drink[]>([]);
+  const [
+    drinks,
+    setDrinks,
+  ] = useState<Drink[]>([]);
 
-  const [locations, setLocations] =
-    useState<Location[]>([]);
+  const [
+    locations,
+    setLocations,
+  ] = useState<Location[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-  const [dialogOpen, setDialogOpen] =
-    useState(false);
+  const [
+    dialogOpen,
+    setDialogOpen,
+  ] = useState(false);
 
   const [
     selectedTransfer,
     setSelectedTransfer,
-  ] = useState<Transfer | null>(null);
+  ] = useState<Transfer | null>(
+    null
+  );
 
   const [
     deleteDialogOpen,
@@ -103,13 +121,19 @@ function Transfers() {
   const [
     transferToDelete,
     setTransferToDelete,
-  ] = useState<Transfer | null>(null);
+  ] = useState<Transfer | null>(
+    null
+  );
 
-  const [deleting, setDeleting] =
-    useState(false);
+  const [
+    deleting,
+    setDeleting,
+  ] = useState(false);
 
-  const [search, setSearch] =
-    useState("");
+  const [
+    search,
+    setSearch,
+  ] = useState("");
 
   const [
     sourceFilter,
@@ -121,16 +145,17 @@ function Transfers() {
     setDestinationFilter,
   ] = useState("");
 
-  const [message, setMessage] =
-    useState("");
+  const [
+    message,
+    setMessage,
+  ] = useState("");
 
   const [
     messageType,
     setMessageType,
-  ] =
-    useState<
-      "success" | "error"
-    >("success");
+  ] = useState<
+    "success" | "error"
+  >("success");
 
   const normaliseId = (
     value: unknown
@@ -155,17 +180,30 @@ function Transfers() {
         getLocations(),
       ]);
 
-      setTransfers(transferData);
-      setInventory(inventoryData);
-      setDrinks(drinkData);
-      setLocations(locationData);
+      setTransfers(
+        transferData
+      );
+
+      setInventory(
+        inventoryData
+      );
+
+      setDrinks(
+        drinkData
+      );
+
+      setLocations(
+        locationData
+      );
     } catch (error) {
       console.error(
         "Could not load transfers:",
         error
       );
 
-      setMessageType("error");
+      setMessageType(
+        "error"
+      );
 
       setMessage(
         "Could not load transfers. Check that the backend is running."
@@ -180,92 +218,96 @@ function Transfers() {
   }, []);
 
   const rows =
-    useMemo<TransferRow[]>(() => {
-      return transfers.map(
-        (transfer) => {
-          const sourceLocation =
-            locations.find(
-              (location) =>
-                normaliseId(
-                  location.id
-                ) ===
-                normaliseId(
-                  transfer.sourceLocationId
-                )
-            );
+    useMemo<TransferRow[]>(
+      () => {
+        return transfers.map(
+          (transfer) => {
+            const sourceLocation =
+              locations.find(
+                (location) =>
+                  normaliseId(
+                    location.id
+                  ) ===
+                  normaliseId(
+                    transfer.sourceLocationId
+                  )
+              );
 
-          const destinationLocation =
-            locations.find(
-              (location) =>
-                normaliseId(
-                  location.id
-                ) ===
-                normaliseId(
-                  transfer.destinationLocationId
-                )
-            );
+            const destinationLocation =
+              locations.find(
+                (location) =>
+                  normaliseId(
+                    location.id
+                  ) ===
+                  normaliseId(
+                    transfer.destinationLocationId
+                  )
+              );
 
-          const drink =
-            drinks.find(
-              (item) =>
-                normaliseId(
-                  item.id
-                ) ===
-                normaliseId(
-                  transfer.drinkId
-                )
-            );
+            const drink =
+              drinks.find(
+                (item) =>
+                  normaliseId(
+                    item.id
+                  ) ===
+                  normaliseId(
+                    transfer.drinkId
+                  )
+              );
 
-          const quantity =
-            Number(
-              transfer.quantity
-            ) || 0;
+            const quantity =
+              Number(
+                transfer.quantity
+              ) || 0;
 
-          const pricePerBottle =
-            Number(
-              transfer.pricePerBottle
-            ) || 0;
+            const pricePerBottle =
+              Number(
+                transfer.pricePerBottle
+              ) || 0;
 
-          const calculatedTotalPrice =
-            quantity *
-            pricePerBottle;
+            const calculatedTotalPrice =
+              quantity *
+              pricePerBottle;
 
-          return {
-            ...transfer,
+            return {
+              ...transfer,
 
-            sourceLocationName:
-              sourceLocation?.name ??
-              "Unknown location",
+              sourceLocationName:
+                sourceLocation?.name ??
+                "Unknown location",
 
-            destinationLocationName:
-              destinationLocation?.name ??
-              "Unknown location",
+              destinationLocationName:
+                destinationLocation?.name ??
+                "Unknown location",
 
-            drinkName:
-              drink?.name ??
-              "Unknown drink",
+              drinkName:
+                drink?.name ??
+                "Unknown drink",
 
-            drinkBrand:
-              drink?.brand ?? "",
+              drinkBrand:
+                drink?.brand ??
+                "",
 
-            bottleSize:
-              drink?.bottleSize ??
-              "",
+              bottleSize:
+                drink?.bottleSize ??
+                "",
 
-            pricePerBottle,
+              pricePerBottle,
 
-            totalPrice:
+              totalPrice:
+                calculatedTotalPrice,
+
               calculatedTotalPrice,
-
-            calculatedTotalPrice,
-          };
-        }
-      );
-    }, [
-      transfers,
-      locations,
-      drinks,
-    ]);
+            };
+          }
+        );
+      },
+      [
+        transfers,
+        locations,
+        drinks,
+      ]
+    );
 
   const filteredRows =
     useMemo(() => {
@@ -335,10 +377,16 @@ function Transfers() {
       destinationFilter,
     ]);
 
-  const handleNewTransfer = () => {
-    setSelectedTransfer(null);
-    setDialogOpen(true);
-  };
+  const handleNewTransfer =
+    () => {
+      setSelectedTransfer(
+        null
+      );
+
+      setDialogOpen(
+        true
+      );
+    };
 
   const handleEdit = (
     transfer: Transfer
@@ -347,7 +395,9 @@ function Transfers() {
       transfer
     );
 
-    setDialogOpen(true);
+    setDialogOpen(
+      true
+    );
   };
 
   const handleSave = async (
@@ -478,6 +528,362 @@ function Transfers() {
       }
     };
 
+  const getLocationName = (
+    id: string
+  ) => {
+    return (
+      locations.find(
+        (location) =>
+          normaliseId(
+            location.id
+          ) ===
+          normaliseId(id)
+      )?.name ?? "All"
+    );
+  };
+
+  const handleDownloadPdf =
+    () => {
+      if (
+        filteredRows.length === 0
+      ) {
+        setMessageType(
+          "error"
+        );
+
+        setMessage(
+          "There are no transfer records to download."
+        );
+
+        return;
+      }
+
+      const doc =
+        new jsPDF({
+          orientation:
+            "landscape",
+
+          unit: "mm",
+
+          format: "a4",
+        });
+
+      const generatedAt =
+        new Date();
+
+      const reportTotalQuantity =
+        filteredRows.reduce(
+          (
+            total,
+            row
+          ) =>
+            total +
+            Number(
+              row.quantity ||
+                0
+            ),
+          0
+        );
+
+      const reportTotalValue =
+        filteredRows.reduce(
+          (
+            total,
+            row
+          ) =>
+            total +
+            Number(
+              row.calculatedTotalPrice ||
+                0
+            ),
+          0
+        );
+
+      const sourceName =
+        sourceFilter
+          ? getLocationName(
+              sourceFilter
+            )
+          : "All Locations";
+
+      const destinationName =
+        destinationFilter
+          ? getLocationName(
+              destinationFilter
+            )
+          : "All Locations";
+
+      doc.setFontSize(18);
+
+      doc.text(
+        "IVY EASY LOUNGE",
+        14,
+        15
+      );
+
+      doc.setFontSize(13);
+
+      doc.text(
+        "Stock Transfer Report",
+        14,
+        23
+      );
+
+      doc.setFontSize(9);
+
+      doc.text(
+        `Generated: ${generatedAt.toLocaleString()}`,
+        14,
+        30
+      );
+
+      doc.text(
+        `From: ${sourceName}`,
+        14,
+        36
+      );
+
+      doc.text(
+        `To: ${destinationName}`,
+        80,
+        36
+      );
+
+      if (search.trim()) {
+        doc.text(
+          `Search filter: ${search.trim()}`,
+          150,
+          36
+        );
+      }
+
+      autoTable(
+        doc,
+        {
+          startY: 43,
+
+          head: [
+            [
+              "Transfer No.",
+              "Date",
+              "From",
+              "To",
+              "Drink",
+              "Brand",
+              "Size",
+              "Qty",
+              "Price/Bottle",
+              "Total",
+              "Reason",
+              "Status",
+            ],
+          ],
+
+          body:
+            filteredRows.map(
+              (row) => [
+                row.transferNumber ??
+                  "—",
+
+                row.transferDate
+                  ? new Date(
+                      row.transferDate
+                    ).toLocaleDateString()
+                  : "—",
+
+                row.sourceLocationName,
+
+                row.destinationLocationName,
+
+                row.drinkName,
+
+                row.drinkBrand ||
+                  "—",
+
+                row.bottleSize ||
+                  "—",
+
+                Number(
+                  row.quantity ||
+                    0
+                ).toLocaleString(),
+
+                `${Number(
+                  row.pricePerBottle ||
+                    0
+                ).toLocaleString()} FCFA`,
+
+                `${Number(
+                  row.calculatedTotalPrice ||
+                    0
+                ).toLocaleString()} FCFA`,
+
+                row.reason ||
+                  "—",
+
+                row.status ??
+                  "Completed",
+              ]
+            ),
+
+          styles: {
+            fontSize: 7,
+            cellPadding: 2,
+            overflow:
+              "linebreak",
+          },
+
+          headStyles: {
+            fontStyle:
+              "bold",
+          },
+
+          columnStyles: {
+            0: {
+              cellWidth:
+                30,
+            },
+
+            1: {
+              cellWidth:
+                20,
+            },
+
+            2: {
+              cellWidth:
+                23,
+            },
+
+            3: {
+              cellWidth:
+                23,
+            },
+
+            4: {
+              cellWidth:
+                28,
+            },
+
+            5: {
+              cellWidth:
+                23,
+            },
+
+            6: {
+              cellWidth:
+                14,
+            },
+
+            7: {
+              cellWidth:
+                12,
+            },
+
+            8: {
+              cellWidth:
+                24,
+            },
+
+            9: {
+              cellWidth:
+                24,
+            },
+
+            10: {
+              cellWidth:
+                35,
+            },
+
+            11: {
+              cellWidth:
+                20,
+            },
+          },
+
+          didDrawPage: (
+            data
+          ) => {
+            const pageCount =
+              doc.getNumberOfPages();
+
+            doc.setFontSize(
+              8
+            );
+
+            doc.text(
+              `Page ${pageCount}`,
+              doc.internal.pageSize.getWidth() -
+                25,
+              doc.internal.pageSize.getHeight() -
+                7
+            );
+
+            if (
+              data.pageNumber >
+              1
+            ) {
+              doc.text(
+                "IVY EASY LOUNGE - Stock Transfer Report",
+                14,
+                10
+              );
+            }
+          },
+        }
+      );
+
+      const finalY =
+        (
+          doc as jsPDF & {
+            lastAutoTable?: {
+              finalY: number;
+            };
+          }
+        ).lastAutoTable
+          ?.finalY ??
+        50;
+
+      doc.setFontSize(10);
+
+      doc.text(
+        `Total records: ${filteredRows.length}`,
+        14,
+        finalY + 10
+      );
+
+      doc.text(
+        `Total bottles transferred: ${reportTotalQuantity.toLocaleString()}`,
+        14,
+        finalY + 17
+      );
+
+      doc.text(
+        `Total transfer value: ${reportTotalValue.toLocaleString()} FCFA`,
+        14,
+        finalY + 24
+      );
+
+      const fileDate =
+        new Date()
+          .toISOString()
+          .slice(
+            0,
+            10
+          );
+
+      doc.save(
+        `IVY-EASY-LOUNGE-Transfer-Report-${fileDate}.pdf`
+      );
+
+      setMessageType(
+        "success"
+      );
+
+      setMessage(
+        "Transfer PDF downloaded successfully."
+      );
+    };
+
   const columns:
     GridColDef<TransferRow>[] =
     [
@@ -488,12 +894,16 @@ function Transfers() {
         headerName:
           "Transfer Number",
 
-        minWidth: 190,
+        minWidth:
+          190,
 
         flex: 1,
 
         valueGetter:
-          (_value, row) =>
+          (
+            _value,
+            row
+          ) =>
             row.transferNumber ??
             "—",
       },
@@ -502,9 +912,11 @@ function Transfers() {
         field:
           "sourceLocationName",
 
-        headerName: "From",
+        headerName:
+          "From",
 
-        minWidth: 160,
+        minWidth:
+          160,
 
         flex: 1,
       },
@@ -513,59 +925,80 @@ function Transfers() {
         field:
           "destinationLocationName",
 
-        headerName: "To",
+        headerName:
+          "To",
 
-        minWidth: 160,
-
-        flex: 1,
-      },
-
-      {
-        field: "drinkName",
-
-        headerName: "Drink",
-
-        minWidth: 160,
+        minWidth:
+          160,
 
         flex: 1,
       },
 
       {
-        field: "drinkBrand",
+        field:
+          "drinkName",
 
-        headerName: "Brand",
+        headerName:
+          "Drink",
 
-        minWidth: 145,
+        minWidth:
+          160,
+
+        flex: 1,
+      },
+
+      {
+        field:
+          "drinkBrand",
+
+        headerName:
+          "Brand",
+
+        minWidth:
+          145,
 
         flex: 1,
 
         valueGetter:
-          (_value, row) =>
+          (
+            _value,
+            row
+          ) =>
             row.drinkBrand ||
             "—",
       },
 
       {
-        field: "bottleSize",
+        field:
+          "bottleSize",
 
-        headerName: "Size",
+        headerName:
+          "Size",
 
-        width: 95,
+        width:
+          95,
 
         valueGetter:
-          (_value, row) =>
+          (
+            _value,
+            row
+          ) =>
             row.bottleSize ||
             "—",
       },
 
       {
-        field: "quantity",
+        field:
+          "quantity",
 
-        headerName: "Qty",
+        headerName:
+          "Qty",
 
-        width: 90,
+        width:
+          90,
 
-        type: "number",
+        type:
+          "number",
       },
 
       {
@@ -575,15 +1008,18 @@ function Transfers() {
         headerName:
           "Price/Bottle",
 
-        minWidth: 135,
+        minWidth:
+          135,
 
-        type: "number",
+        type:
+          "number",
 
         valueFormatter:
           (value) => {
             const amount =
-              Number(value) ||
-              0;
+              Number(
+                value
+              ) || 0;
 
             return `${amount.toLocaleString()} FCFA`;
           },
@@ -596,31 +1032,40 @@ function Transfers() {
         headerName:
           "Total Price",
 
-        minWidth: 150,
+        minWidth:
+          150,
 
-        type: "number",
+        type:
+          "number",
 
         valueFormatter:
           (value) => {
             const amount =
-              Number(value) ||
-              0;
+              Number(
+                value
+              ) || 0;
 
             return `${amount.toLocaleString()} FCFA`;
           },
       },
 
       {
-        field: "reason",
+        field:
+          "reason",
 
-        headerName: "Reason",
+        headerName:
+          "Reason",
 
-        minWidth: 190,
+        minWidth:
+          190,
 
         flex: 1,
 
         valueGetter:
-          (_value, row) =>
+          (
+            _value,
+            row
+          ) =>
             row.reason ||
             "—",
       },
@@ -629,9 +1074,11 @@ function Transfers() {
         field:
           "transferDate",
 
-        headerName: "Date",
+        headerName:
+          "Date",
 
-        minWidth: 175,
+        minWidth:
+          175,
 
         valueFormatter:
           (value) => {
@@ -640,29 +1087,32 @@ function Transfers() {
             }
 
             return new Date(
-              String(value)
+              String(
+                value
+              )
             ).toLocaleString();
           },
       },
 
       {
-        field: "status",
+        field:
+          "status",
 
-        headerName: "Status",
+        headerName:
+          "Status",
 
-        width: 120,
+        width:
+          120,
 
         renderCell:
           (params) => (
             <Chip
               size="small"
-
               label={
                 params.row
                   .status ??
                 "Completed"
               }
-
               color={
                 params.row
                   .status ===
@@ -675,16 +1125,20 @@ function Transfers() {
       },
 
       {
-        field: "actions",
+        field:
+          "actions",
 
         headerName:
           "Actions",
 
-        width: 120,
+        width:
+          120,
 
-        sortable: false,
+        sortable:
+          false,
 
-        filterable: false,
+        filterable:
+          false,
 
         disableColumnMenu:
           true,
@@ -693,10 +1147,14 @@ function Transfers() {
           (params) => (
             <Box
               sx={{
-                display: "flex",
+                display:
+                  "flex",
+
                 alignItems:
                   "center",
-                gap: 0.5,
+
+                gap:
+                  0.5,
               }}
             >
               <Tooltip title="Edit transfer">
@@ -733,7 +1191,10 @@ function Transfers() {
 
   const totalTransferred =
     transfers.reduce(
-      (total, transfer) =>
+      (
+        total,
+        transfer
+      ) =>
         total +
         Number(
           transfer.quantity ||
@@ -744,7 +1205,10 @@ function Transfers() {
 
   const totalTransferValue =
     transfers.reduce(
-      (total, transfer) =>
+      (
+        total,
+        transfer
+      ) =>
         total +
         Number(
           transfer.quantity ||
@@ -792,24 +1256,35 @@ function Transfers() {
     <Box>
       <Box
         sx={{
-          display: "flex",
+          display:
+            "flex",
 
-          flexDirection: {
-            xs: "column",
-            sm: "row",
-          },
+          flexDirection:
+            {
+              xs:
+                "column",
+
+              sm:
+                "row",
+            },
 
           justifyContent:
             "space-between",
 
-          alignItems: {
-            xs: "stretch",
-            sm: "center",
-          },
+          alignItems:
+            {
+              xs:
+                "stretch",
 
-          gap: 2,
+              sm:
+                "center",
+            },
 
-          mb: 3,
+          gap:
+            2,
+
+          mb:
+            3,
         }}
       >
         <Box>
@@ -818,156 +1293,161 @@ function Transfers() {
           </Typography>
 
           <Typography color="text.secondary">
-            Move drinks between
-            the warehouse, bar and
-            other locations.
+            Move drinks between the warehouse, bar and other locations.
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
+        <Box
+          sx={{
+            display:
+              "flex",
 
-          startIcon={
-            <SwapHorizOutlined />
-          }
+            flexDirection:
+              {
+                xs:
+                  "column",
 
-          onClick={
-            handleNewTransfer
-          }
+                sm:
+                  "row",
+              },
+
+            gap:
+              1,
+          }}
         >
-          New Transfer
-        </Button>
+          <Button
+            variant="outlined"
+            startIcon={
+              <PictureAsPdfOutlined />
+            }
+            onClick={
+              handleDownloadPdf
+            }
+          >
+            Download PDF
+          </Button>
+
+          <Button
+            variant="contained"
+            startIcon={
+              <SwapHorizOutlined />
+            }
+            onClick={
+              handleNewTransfer
+            }
+          >
+            New Transfer
+          </Button>
+        </Box>
       </Box>
 
       <Box
         sx={{
-          display: "grid",
+          display:
+            "grid",
 
-          gridTemplateColumns: {
-            xs: "1fr",
+          gridTemplateColumns:
+            {
+              xs:
+                "1fr",
 
-            sm:
-              "repeat(2, 1fr)",
+              sm:
+                "repeat(2, 1fr)",
 
-            lg:
-              "repeat(5, 1fr)",
-          },
+              lg:
+                "repeat(5, 1fr)",
+            },
 
-          gap: 2,
+          gap:
+            2,
 
-          mb: 3,
+          mb:
+            3,
         }}
       >
-        <Box
-          sx={{
-            bgcolor:
-              "background.paper",
+        {[
+          {
+            title:
+              "Total Transfers",
 
-            border:
-              "1px solid #e5e7eb",
+            value:
+              transfers.length.toLocaleString(),
+          },
 
-            borderRadius: 3,
+          {
+            title:
+              "Bottles Transferred",
 
-            p: 2,
-          }}
-        >
-          <Typography color="text.secondary">
-            Total Transfers
-          </Typography>
+            value:
+              totalTransferred.toLocaleString(),
+          },
 
-          <Typography variant="h4">
-            {transfers.length}
-          </Typography>
-        </Box>
+          {
+            title:
+              "Transfer Value",
 
-        <Box
-          sx={{
-            bgcolor:
-              "background.paper",
+            value:
+              `${totalTransferValue.toLocaleString()} FCFA`,
+          },
 
-            border:
-              "1px solid #e5e7eb",
+          {
+            title:
+              "Completed",
 
-            borderRadius: 3,
+            value:
+              completedCount.toLocaleString(),
+          },
 
-            p: 2,
-          }}
-        >
-          <Typography color="text.secondary">
-            Bottles Transferred
-          </Typography>
+          {
+            title:
+              "Today",
 
-          <Typography variant="h4">
-            {totalTransferred.toLocaleString()}
-          </Typography>
-        </Box>
+            value:
+              todayCount.toLocaleString(),
+          },
+        ].map(
+          (card) => (
+            <Box
+              key={
+                card.title
+              }
+              sx={{
+                bgcolor:
+                  "background.paper",
 
-        <Box
-          sx={{
-            bgcolor:
-              "background.paper",
+                border:
+                  "1px solid #e5e7eb",
 
-            border:
-              "1px solid #e5e7eb",
+                borderRadius:
+                  3,
 
-            borderRadius: 3,
+                p:
+                  2,
+              }}
+            >
+              <Typography color="text.secondary">
+                {
+                  card.title
+                }
+              </Typography>
 
-            p: 2,
-          }}
-        >
-          <Typography color="text.secondary">
-            Transfer Value
-          </Typography>
+              <Typography
+                variant="h5"
+                sx={{
+                  mt:
+                    0.5,
 
-          <Typography variant="h5">
-            {totalTransferValue.toLocaleString()}{" "}
-            FCFA
-          </Typography>
-        </Box>
-
-        <Box
-          sx={{
-            bgcolor:
-              "background.paper",
-
-            border:
-              "1px solid #e5e7eb",
-
-            borderRadius: 3,
-
-            p: 2,
-          }}
-        >
-          <Typography color="text.secondary">
-            Completed
-          </Typography>
-
-          <Typography variant="h4">
-            {completedCount}
-          </Typography>
-        </Box>
-
-        <Box
-          sx={{
-            bgcolor:
-              "background.paper",
-
-            border:
-              "1px solid #e5e7eb",
-
-            borderRadius: 3,
-
-            p: 2,
-          }}
-        >
-          <Typography color="text.secondary">
-            Today
-          </Typography>
-
-          <Typography variant="h4">
-            {todayCount}
-          </Typography>
-        </Box>
+                  fontWeight:
+                    700,
+                }}
+              >
+                {
+                  card.value
+                }
+              </Typography>
+            </Box>
+          )
+        )}
       </Box>
 
       <Box
@@ -978,74 +1458,89 @@ function Transfers() {
           border:
             "1px solid #e5e7eb",
 
-          borderRadius: 3,
+          borderRadius:
+            3,
 
-          p: 2,
+          p:
+            2,
         }}
       >
         <Box
           sx={{
-            display: "flex",
+            display:
+              "flex",
 
-            flexDirection: {
-              xs: "column",
-              lg: "row",
-            },
+            flexDirection:
+              {
+                xs:
+                  "column",
 
-            gap: 2,
+                lg:
+                  "row",
+              },
 
-            mb: 2,
+            gap:
+              2,
+
+            mb:
+              2,
           }}
         >
           <TextField
             placeholder="Search transfers..."
-
-            value={search}
-
-            onChange={(event) =>
-              setSearch(
-                event.target.value
-              )
+            value={
+              search
             }
-
+            onChange={
+              (event) =>
+                setSearch(
+                  event.target.value
+                )
+            }
             sx={{
-              width: {
-                xs: "100%",
-                lg: 340,
-              },
-            }}
+              width:
+                {
+                  xs:
+                    "100%",
 
+                  lg:
+                    340,
+                },
+            }}
             slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchOutlined />
-                  </InputAdornment>
-                ),
-              },
+              input:
+                {
+                  startAdornment:
+                    (
+                      <InputAdornment position="start">
+                        <SearchOutlined />
+                      </InputAdornment>
+                    ),
+                },
             }}
           />
 
           <TextField
             select
-
             label="From Location"
-
             value={
               sourceFilter
             }
-
-            onChange={(event) =>
-              setSourceFilter(
-                event.target.value
-              )
+            onChange={
+              (event) =>
+                setSourceFilter(
+                  event.target.value
+                )
             }
-
             sx={{
-              width: {
-                xs: "100%",
-                lg: 220,
-              },
+              width:
+                {
+                  xs:
+                    "100%",
+
+                  lg:
+                    220,
+                },
             }}
           >
             <MenuItem value="">
@@ -1053,19 +1548,22 @@ function Transfers() {
             </MenuItem>
 
             {locations.map(
-              (location) => (
+              (
+                location
+              ) => (
                 <MenuItem
                   key={
                     location.id ??
                     location.name
                   }
-
                   value={
                     location.id ??
                     ""
                   }
                 >
-                  {location.name}
+                  {
+                    location.name
+                  }
                 </MenuItem>
               )
             )}
@@ -1073,24 +1571,25 @@ function Transfers() {
 
           <TextField
             select
-
             label="To Location"
-
             value={
               destinationFilter
             }
-
-            onChange={(event) =>
-              setDestinationFilter(
-                event.target.value
-              )
+            onChange={
+              (event) =>
+                setDestinationFilter(
+                  event.target.value
+                )
             }
-
             sx={{
-              width: {
-                xs: "100%",
-                lg: 220,
-              },
+              width:
+                {
+                  xs:
+                    "100%",
+
+                  lg:
+                    220,
+                },
             }}
           >
             <MenuItem value="">
@@ -1098,19 +1597,22 @@ function Transfers() {
             </MenuItem>
 
             {locations.map(
-              (location) => (
+              (
+                location
+              ) => (
                 <MenuItem
                   key={
                     location.id ??
                     location.name
                   }
-
                   value={
                     location.id ??
                     ""
                   }
                 >
-                  {location.name}
+                  {
+                    location.name
+                  }
                 </MenuItem>
               )
             )}
@@ -1118,40 +1620,46 @@ function Transfers() {
         </Box>
 
         <DataGrid
-          rows={filteredRows}
-
-          columns={columns}
-
-          loading={loading}
-
-          getRowId={(row) =>
-            row.id ??
-            row.transferNumber ??
-            `${row.sourceLocationId}-${row.destinationLocationId}-${row.drinkId}-${row.transferDate}`
+          rows={
+            filteredRows
           }
-
+          columns={
+            columns
+          }
+          loading={
+            loading
+          }
+          getRowId={
+            (row) =>
+              row.id ??
+              row.transferNumber ??
+              `${row.sourceLocationId}-${row.destinationLocationId}-${row.drinkId}-${row.transferDate}`
+          }
           disableRowSelectionOnClick
-
           pageSizeOptions={[
             5,
             10,
             20,
           ]}
-
           initialState={{
-            pagination: {
-              paginationModel:
-                {
-                  page: 0,
-                  pageSize: 10,
-                },
-            },
+            pagination:
+              {
+                paginationModel:
+                  {
+                    page:
+                      0,
+
+                    pageSize:
+                      10,
+                  },
+              },
           }}
-
           sx={{
-            minHeight: 520,
+            minHeight:
+              520,
 
-            border: 0,
+            border:
+              0,
 
             "& .MuiDataGrid-columnHeaders":
               {
@@ -1163,22 +1671,21 @@ function Transfers() {
       </Box>
 
       <TransferDialog
-        open={dialogOpen}
-
-        drinks={drinks}
-
+        open={
+          dialogOpen
+        }
+        drinks={
+          drinks
+        }
         locations={
           locations
         }
-
         inventory={
           inventory
         }
-
         transfer={
           selectedTransfer
         }
-
         onClose={() => {
           setDialogOpen(
             false
@@ -1188,7 +1695,6 @@ function Transfers() {
             null
           );
         }}
-
         onSave={
           handleSave
         }
@@ -1198,7 +1704,6 @@ function Transfers() {
         open={
           deleteDialogOpen
         }
-
         onClose={
           deleting
             ? undefined
@@ -1207,9 +1712,7 @@ function Transfers() {
                   false
                 )
         }
-
         maxWidth="xs"
-
         fullWidth
       >
         <DialogTitle>
@@ -1221,7 +1724,8 @@ function Transfers() {
             Are you sure you want
             to delete transfer{" "}
             <strong>
-              {transferToDelete?.transferNumber ??
+              {transferToDelete
+                ?.transferNumber ??
                 ""}
             </strong>
             ?
@@ -1229,22 +1733,21 @@ function Transfers() {
 
           <Alert
             severity="warning"
-            sx={{ mt: 2 }}
+            sx={{
+              mt:
+                2,
+            }}
           >
-            Deleting a stock
-            transfer may affect the
-            inventory quantities.
+            Deleting a stock transfer may affect the inventory quantities.
           </Alert>
         </DialogContent>
 
         <DialogActions>
           <Button
             color="inherit"
-
             disabled={
               deleting
             }
-
             onClick={() =>
               setDeleteDialogOpen(
                 false
@@ -1256,13 +1759,10 @@ function Transfers() {
 
           <Button
             color="error"
-
             variant="contained"
-
             disabled={
               deleting
             }
-
             onClick={
               handleDelete
             }
@@ -1278,15 +1778,12 @@ function Transfers() {
         open={Boolean(
           message
         )}
-
         autoHideDuration={
           4000
         }
-
         onClose={() =>
           setMessage("")
         }
-
         anchorOrigin={{
           vertical:
             "bottom",
@@ -1299,14 +1796,14 @@ function Transfers() {
           severity={
             messageType
           }
-
           variant="filled"
-
           onClose={() =>
             setMessage("")
           }
         >
-          {message}
+          {
+            message
+          }
         </Alert>
       </Snackbar>
     </Box>

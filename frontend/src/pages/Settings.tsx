@@ -33,7 +33,7 @@ type BusinessSettings = {
 const STORAGE_KEY = "barmaster_business_settings";
 
 const defaultSettings: BusinessSettings = {
-  businessName: "BarMaster Cameroon",
+  businessName: "IVY EASY LOUNGE",
   ownerName: "Samuel",
   phone: "+237",
   email: "swsslounge@gmail.com",
@@ -336,7 +336,7 @@ function Settings() {
 
                 <Box>
                   <Typography fontWeight={700}>
-                    BarMaster Version
+                    IVY EASY LOUNGE Version
                   </Typography>
 
                   <Typography

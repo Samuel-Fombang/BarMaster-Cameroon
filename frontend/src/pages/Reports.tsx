@@ -90,7 +90,7 @@ function Reports() {
             onChange={handleTabChange}
             variant="scrollable"
             scrollButtons="auto"
-            aria-label="BarMaster reports"
+            aria-label="IVY EASY LOUNGE reports"
             sx={{
               minHeight: 64,
               px: 1,

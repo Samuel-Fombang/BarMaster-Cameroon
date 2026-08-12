@@ -2,6 +2,7 @@ import {
   AddOutlined,
   DeleteOutlined,
   EditOutlined,
+  PictureAsPdfOutlined,
   SearchOutlined,
 } from "@mui/icons-material";
 
@@ -27,6 +28,9 @@ import {
   useMemo,
   useState,
 } from "react";
+
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 import DeleteInventoryDialog from "../components/inventory/DeleteInventoryDialog";
 import InventoryDialog from "../components/inventory/InventoryDialog";
@@ -514,6 +518,429 @@ function Inventory() {
       }
     };
 
+  const getLocationName = (
+    id: string
+  ) => {
+    return (
+      locations.find(
+        (location) =>
+          normaliseId(
+            location.id
+          ) ===
+          normaliseId(id)
+      )?.name ??
+      "All Locations"
+    );
+  };
+
+  const handleDownloadPdf =
+    () => {
+      if (
+        filteredRows.length ===
+        0
+      ) {
+        setMessageType(
+          "error"
+        );
+
+        setMessage(
+          "There are no inventory records to download."
+        );
+
+        return;
+      }
+
+      const doc =
+        new jsPDF({
+          orientation:
+            "landscape",
+
+          unit:
+            "mm",
+
+          format:
+            "a4",
+        });
+
+      const generatedAt =
+        new Date();
+
+      const reportTotalQuantity =
+        filteredRows.reduce(
+          (
+            total,
+            row
+          ) =>
+            total +
+            Number(
+              row.quantity ||
+                0
+            ),
+          0
+        );
+
+      const reportTotalValue =
+        filteredRows.reduce(
+          (
+            total,
+            row
+          ) =>
+            total +
+            Number(
+              row.calculatedTotalStockValue ||
+                0
+            ),
+          0
+        );
+
+      const reportLowStockCount =
+        filteredRows.filter(
+          (row) =>
+            row.quantity >
+              0 &&
+            row.quantity <=
+              row.minimumQuantity
+        ).length;
+
+      const reportOutOfStockCount =
+        filteredRows.filter(
+          (row) =>
+            row.quantity ===
+            0
+        ).length;
+
+      const locationName =
+        locationFilter
+          ? getLocationName(
+              locationFilter
+            )
+          : "All Locations";
+
+      doc.setFontSize(
+        18
+      );
+
+      doc.text(
+        "IVY EASY LOUNGE",
+        14,
+        15
+      );
+
+      doc.setFontSize(
+        13
+      );
+
+      doc.text(
+        "Inventory Stock Report",
+        14,
+        23
+      );
+
+      doc.setFontSize(
+        9
+      );
+
+      doc.text(
+        `Generated: ${generatedAt.toLocaleString()}`,
+        14,
+        30
+      );
+
+      doc.text(
+        `Location: ${locationName}`,
+        14,
+        36
+      );
+
+      if (
+        search.trim()
+      ) {
+        doc.text(
+          `Search filter: ${search.trim()}`,
+          120,
+          36
+        );
+      }
+
+      autoTable(
+        doc,
+        {
+          startY:
+            43,
+
+          head: [
+            [
+              "Drink",
+              "Brand",
+              "Size",
+              "Location",
+              "Qty",
+              "Price/Bottle",
+              "Stock Value",
+              "Minimum",
+              "Stock Status",
+              "Active",
+              "Last Updated",
+            ],
+          ],
+
+          body:
+            filteredRows.map(
+              (row) => {
+                let stockStatus =
+                  "Available";
+
+                if (
+                  row.quantity ===
+                  0
+                ) {
+                  stockStatus =
+                    "Out of Stock";
+                } else if (
+                  row.quantity <=
+                  row.minimumQuantity
+                ) {
+                  stockStatus =
+                    "Low Stock";
+                }
+
+                return [
+                  row.drinkName,
+
+                  row.drinkBrand ||
+                    "—",
+
+                  row.bottleSize ||
+                    "—",
+
+                  row.locationName,
+
+                  Number(
+                    row.quantity ||
+                      0
+                  ).toLocaleString(),
+
+                  `${Number(
+                    row.pricePerBottle ||
+                      0
+                  ).toLocaleString()} FCFA`,
+
+                  `${Number(
+                    row.calculatedTotalStockValue ||
+                      0
+                  ).toLocaleString()} FCFA`,
+
+                  Number(
+                    row.minimumQuantity ||
+                      0
+                  ).toLocaleString(),
+
+                  stockStatus,
+
+                  row.isActive
+                    ? "Active"
+                    : "Inactive",
+
+                  row.updatedAt
+                    ? new Date(
+                        row.updatedAt
+                      ).toLocaleString()
+                    : "—",
+                ];
+              }
+            ),
+
+          styles:
+            {
+              fontSize:
+                7,
+
+              cellPadding:
+                2,
+
+              overflow:
+                "linebreak",
+            },
+
+          headStyles:
+            {
+              fontStyle:
+                "bold",
+            },
+
+          columnStyles:
+            {
+              0: {
+                cellWidth:
+                  32,
+              },
+
+              1: {
+                cellWidth:
+                  27,
+              },
+
+              2: {
+                cellWidth:
+                  18,
+              },
+
+              3: {
+                cellWidth:
+                  30,
+              },
+
+              4: {
+                cellWidth:
+                  14,
+              },
+
+              5: {
+                cellWidth:
+                  26,
+              },
+
+              6: {
+                cellWidth:
+                  28,
+              },
+
+              7: {
+                cellWidth:
+                  17,
+              },
+
+              8: {
+                cellWidth:
+                  24,
+              },
+
+              9: {
+                cellWidth:
+                  18,
+              },
+
+              10: {
+                cellWidth:
+                  33,
+              },
+            },
+
+          didDrawPage:
+            (
+              data
+            ) => {
+              const pageCount =
+                doc.getNumberOfPages();
+
+              doc.setFontSize(
+                8
+              );
+
+              doc.text(
+                `Page ${pageCount}`,
+                doc.internal.pageSize.getWidth() -
+                  25,
+                doc.internal.pageSize.getHeight() -
+                  7
+              );
+
+              if (
+                data.pageNumber >
+                1
+              ) {
+                doc.text(
+                  "IVY EASY LOUNGE - Inventory Stock Report",
+                  14,
+                  10
+                );
+              }
+            },
+        }
+      );
+
+      const finalY =
+        (
+          doc as jsPDF & {
+            lastAutoTable?: {
+              finalY: number;
+            };
+          }
+        ).lastAutoTable
+          ?.finalY ??
+        50;
+
+      doc.setFontSize(
+        10
+      );
+
+      doc.text(
+        `Total records: ${filteredRows.length}`,
+        14,
+        finalY +
+          10
+      );
+
+      doc.text(
+        `Total bottles: ${reportTotalQuantity.toLocaleString()}`,
+        14,
+        finalY +
+          17
+      );
+
+      doc.text(
+        `Total inventory value: ${reportTotalValue.toLocaleString()} FCFA`,
+        14,
+        finalY +
+          24
+      );
+
+      doc.text(
+        `Low stock items: ${reportLowStockCount}`,
+        120,
+        finalY +
+          10
+      );
+
+      doc.text(
+        `Out of stock items: ${reportOutOfStockCount}`,
+        120,
+        finalY +
+          17
+      );
+
+      const fileDate =
+        new Date()
+          .toISOString()
+          .slice(
+            0,
+            10
+          );
+
+      const locationFileName =
+        locationName
+          .replace(
+            /[^a-z0-9]/gi,
+            "-"
+          )
+          .replace(
+            /-+/g,
+            "-"
+          );
+
+      doc.save(
+        `IVY-EASY-LOUNGE-Inventory-${locationFileName}-${fileDate}.pdf`
+      );
+
+      setMessageType(
+        "success"
+      );
+
+      setMessage(
+        "Inventory PDF downloaded successfully."
+      );
+    };
+
   const columns:
     GridColDef<InventoryRow>[] =
     [
@@ -524,7 +951,8 @@ function Inventory() {
         headerName:
           "Drink",
 
-        flex: 1.1,
+        flex:
+          1.1,
 
         minWidth:
           160,
@@ -537,7 +965,8 @@ function Inventory() {
         headerName:
           "Brand",
 
-        flex: 1,
+        flex:
+          1,
 
         minWidth:
           150,
@@ -577,7 +1006,8 @@ function Inventory() {
         headerName:
           "Location",
 
-        flex: 1,
+        flex:
+          1,
 
         minWidth:
           160,
@@ -615,7 +1045,8 @@ function Inventory() {
             const amount =
               Number(
                 value
-              ) || 0;
+              ) ||
+              0;
 
             return `${amount.toLocaleString()} FCFA`;
           },
@@ -639,7 +1070,8 @@ function Inventory() {
             const amount =
               Number(
                 value
-              ) || 0;
+              ) ||
+              0;
 
             return `${amount.toLocaleString()} FCFA`;
           },
@@ -673,7 +1105,9 @@ function Inventory() {
           false,
 
         renderCell:
-          (params) => {
+          (
+            params
+          ) => {
             const quantity =
               params.row
                 .quantity;
@@ -729,8 +1163,12 @@ function Inventory() {
           175,
 
         valueFormatter:
-          (value) => {
-            if (!value) {
+          (
+            value
+          ) => {
+            if (
+              !value
+            ) {
               return "—";
             }
 
@@ -759,7 +1197,9 @@ function Inventory() {
           false,
 
         renderCell:
-          (params) => (
+          (
+            params
+          ) => (
             <Chip
               size="small"
               label={
@@ -795,7 +1235,9 @@ function Inventory() {
           false,
 
         renderCell:
-          (params) => (
+          (
+            params
+          ) => (
             <Box
               sx={{
                 display:
@@ -804,7 +1246,8 @@ function Inventory() {
                 alignItems:
                   "center",
 
-                gap: 1,
+                gap:
+                  1,
 
                 height:
                   "100%",
@@ -876,7 +1319,9 @@ function Inventory() {
   const warehouseQuantity =
     rows
       .filter(
-        (row) =>
+        (
+          row
+        ) =>
           row.locationType ===
           "Warehouse"
       )
@@ -896,7 +1341,9 @@ function Inventory() {
   const salesAreaQuantity =
     rows
       .filter(
-        (row) =>
+        (
+          row
+        ) =>
           row.locationType ===
           "SalesArea"
       )
@@ -915,7 +1362,9 @@ function Inventory() {
 
   const lowStockCount =
     rows.filter(
-      (item) =>
+      (
+        item
+      ) =>
         item.quantity >
           0 &&
         item.quantity <=
@@ -932,14 +1381,17 @@ function Inventory() {
 
       return (
         drinks.find(
-          (drink) =>
+          (
+            drink
+          ) =>
             normaliseId(
               drink.id
             ) ===
             normaliseId(
               inventoryToDelete.drinkId
             )
-        )?.name ?? ""
+        )?.name ??
+        ""
       );
     }, [
       inventoryToDelete,
@@ -956,32 +1408,37 @@ function Inventory() {
 
       return (
         locations.find(
-          (location) =>
+          (
+            location
+          ) =>
             normaliseId(
               location.id
             ) ===
             normaliseId(
               inventoryToDelete.locationId
             )
-        )?.name ?? ""
+        )?.name ??
+        ""
       );
     }, [
       inventoryToDelete,
       locations,
     ]);
 
-  const summaryCardSx = {
-    bgcolor:
-      "background.paper",
+  const summaryCardSx =
+    {
+      bgcolor:
+        "background.paper",
 
-    border:
-      "1px solid #e5e7eb",
+      border:
+        "1px solid #e5e7eb",
 
-    borderRadius:
-      3,
+      borderRadius:
+        3,
 
-    p: 2,
-  };
+      p:
+        2,
+    };
 
   return (
     <Box>
@@ -1011,9 +1468,11 @@ function Inventory() {
                 "center",
             },
 
-          gap: 2,
+          gap:
+            2,
 
-          mb: 3,
+          mb:
+            3,
         }}
       >
         <Box>
@@ -1026,17 +1485,48 @@ function Inventory() {
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={
-            <AddOutlined />
-          }
-          onClick={
-            handleOpenAdd
-          }
+        <Box
+          sx={{
+            display:
+              "flex",
+
+            flexDirection:
+              {
+                xs:
+                  "column",
+
+                sm:
+                  "row",
+              },
+
+            gap:
+              1,
+          }}
         >
-          Add Inventory
-        </Button>
+          <Button
+            variant="outlined"
+            startIcon={
+              <PictureAsPdfOutlined />
+            }
+            onClick={
+              handleDownloadPdf
+            }
+          >
+            Download PDF
+          </Button>
+
+          <Button
+            variant="contained"
+            startIcon={
+              <AddOutlined />
+            }
+            onClick={
+              handleOpenAdd
+            }
+          >
+            Add Inventory
+          </Button>
+        </Box>
       </Box>
 
       <Box
@@ -1056,9 +1546,11 @@ function Inventory() {
                 "repeat(5, 1fr)",
             },
 
-          gap: 2,
+          gap:
+            2,
 
-          mb: 3,
+          mb:
+            3,
         }}
       >
         <Box
@@ -1144,7 +1636,8 @@ function Inventory() {
           borderRadius:
             3,
 
-          p: 2,
+          p:
+            2,
         }}
       >
         <Box
@@ -1161,9 +1654,11 @@ function Inventory() {
                   "row",
               },
 
-            gap: 2,
+            gap:
+              2,
 
-            mb: 2,
+            mb:
+              2,
           }}
         >
           <TextField
@@ -1176,29 +1671,29 @@ function Inventory() {
                 event
               ) =>
                 setSearch(
-                  event
-                    .target
-                    .value
+                  event.target.value
                 )
             }
             sx={{
-              width: {
-                xs:
-                  "100%",
+              width:
+                {
+                  xs:
+                    "100%",
 
-                sm:
-                  360,
-              },
+                  sm:
+                    360,
+                },
             }}
             slotProps={{
-              input: {
-                startAdornment:
-                  (
-                    <InputAdornment position="start">
-                      <SearchOutlined />
-                    </InputAdornment>
-                  ),
-              },
+              input:
+                {
+                  startAdornment:
+                    (
+                      <InputAdornment position="start">
+                        <SearchOutlined />
+                      </InputAdornment>
+                    ),
+                },
             }}
           />
 
@@ -1213,19 +1708,18 @@ function Inventory() {
                 event
               ) =>
                 setLocationFilter(
-                  event
-                    .target
-                    .value
+                  event.target.value
                 )
             }
             sx={{
-              width: {
-                xs:
-                  "100%",
+              width:
+                {
+                  xs:
+                    "100%",
 
-                sm:
-                  240,
-              },
+                  sm:
+                    240,
+                },
             }}
           >
             <MenuItem value="">
@@ -1266,7 +1760,9 @@ function Inventory() {
             loading
           }
           getRowId={
-            (row) =>
+            (
+              row
+            ) =>
               row.id ??
               `${row.drinkId}-${row.locationId}`
           }
@@ -1380,7 +1876,9 @@ function Inventory() {
             setMessage("")
           }
         >
-          {message}
+          {
+            message
+          }
         </Alert>
       </Snackbar>
     </Box>

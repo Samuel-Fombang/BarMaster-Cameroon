@@ -13,97 +13,171 @@ public class SuppliersController : ControllerBase
 {
     private readonly SupplierService _supplierService;
 
-    public SuppliersController(SupplierService supplierService)
+    public SuppliersController(
+        SupplierService supplierService
+    )
     {
         _supplierService = supplierService;
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<Supplier>>> GetSuppliers()
+    public async Task<ActionResult<List<Supplier>>>
+        GetSuppliers()
     {
-        var suppliers = await _supplierService.GetAllAsync();
+        var suppliers =
+            await _supplierService.GetAllAsync();
 
         return Ok(suppliers);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Supplier>> GetSupplierById(string id)
+    public async Task<ActionResult<Supplier>>
+        GetSupplierById(
+            string id
+        )
     {
-        var supplier = await _supplierService.GetByIdAsync(id);
+        var supplier =
+            await _supplierService.GetByIdAsync(id);
 
         if (supplier is null)
         {
-            return NotFound(new
-            {
-                message = "Supplier not found."
-            });
+            return NotFound(
+                new
+                {
+                    message =
+                        "Supplier not found."
+                }
+            );
         }
 
         return Ok(supplier);
     }
 
     [HttpPost]
-    public async Task<ActionResult<Supplier>> CreateSupplier(
-        CreateSupplierDto dto
-    )
+    public async Task<ActionResult<Supplier>>
+        CreateSupplier(
+            CreateSupplierDto dto
+        )
     {
-        var result = await _supplierService.CreateAsync(dto);
+        var result =
+            await _supplierService.CreateAsync(dto);
 
-        if (!result.Success || result.Supplier is null)
+        if (
+            !result.Success ||
+            result.Supplier is null
+        )
         {
-            return Conflict(new
+            if (
+                result.Message.Contains(
+                    "already",
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
             {
-                message = result.Message
-            });
+                return Conflict(
+                    new
+                    {
+                        message =
+                            result.Message
+                    }
+                );
+            }
+
+            return BadRequest(
+                new
+                {
+                    message =
+                        result.Message
+                }
+            );
         }
 
         return CreatedAtAction(
             nameof(GetSupplierById),
-            new { id = result.Supplier.Id },
+            new
+            {
+                id =
+                    result.Supplier.Id
+            },
             result.Supplier
         );
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateSupplier(
-        string id,
-        UpdateSupplierDto dto
-    )
+    public async Task<IActionResult>
+        UpdateSupplier(
+            string id,
+            UpdateSupplierDto dto
+        )
     {
-        var result = await _supplierService.UpdateAsync(id, dto);
+        var result =
+            await _supplierService.UpdateAsync(
+                id,
+                dto
+            );
 
         if (!result.Success)
         {
-            if (result.Message.Contains("already"))
+            if (
+                result.Message.Contains(
+                    "another supplier",
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
             {
-                return Conflict(new
-                {
-                    message = result.Message
-                });
+                return Conflict(
+                    new
+                    {
+                        message =
+                            result.Message
+                    }
+                );
             }
 
-            return NotFound(new
-            {
-                message = result.Message
-            });
+            return BadRequest(
+                new
+                {
+                    message =
+                        result.Message
+                }
+            );
         }
 
-        return NoContent();
+        return Ok(
+            new
+            {
+                message =
+                    result.Message
+            }
+        );
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteSupplier(string id)
+    public async Task<IActionResult>
+        DeleteSupplier(
+            string id
+        )
     {
-        var result = await _supplierService.DeleteAsync(id);
+        var result =
+            await _supplierService.DeleteAsync(id);
 
         if (!result.Success)
         {
-            return NotFound(new
-            {
-                message = result.Message
-            });
+            return BadRequest(
+                new
+                {
+                    message =
+                        result.Message
+                }
+            );
         }
 
-        return NoContent();
+        return Ok(
+            new
+            {
+                message =
+                    result.Message
+            }
+        );
     }
 }

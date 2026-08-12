@@ -84,7 +84,7 @@ function Header() {
       >
         <Box sx={{ flex: 1 }}>
           <Typography variant="h6">
-            BarMaster Cameroon
+            IVY EASY LOUNGE
           </Typography>
 
           <Typography

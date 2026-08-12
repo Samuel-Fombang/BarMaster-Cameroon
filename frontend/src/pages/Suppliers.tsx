@@ -8,6 +8,7 @@ import {
   PhoneOutlined,
   SearchOutlined,
 } from "@mui/icons-material";
+
 import {
   Alert,
   Box,
@@ -22,11 +23,17 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+
 import {
   DataGrid,
   type GridColDef,
 } from "@mui/x-data-grid";
-import { useEffect, useMemo, useState } from "react";
+
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import DeleteSupplierDialog from "../components/suppliers/DeleteSupplierDialog";
 import SupplierDialog from "../components/suppliers/SupplierDialog";
@@ -34,6 +41,7 @@ import SupplierDialog from "../components/suppliers/SupplierDialog";
 import {
   createSupplier,
   deleteSupplier,
+  getSupplierErrorMessage,
   getSuppliers,
   updateSupplier,
 } from "../services/supplierService";
@@ -52,28 +60,49 @@ type ContactFilter =
   | "complete";
 
 function Suppliers() {
-  const [suppliers, setSuppliers] =
-    useState<Supplier[]>([]);
+  const [
+    suppliers,
+    setSuppliers,
+  ] = useState<Supplier[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-  const [search, setSearch] =
-    useState("");
+  const [
+    search,
+    setSearch,
+  ] = useState("");
 
-  const [statusFilter, setStatusFilter] =
-    useState<StatusFilter>("all");
+  const [
+    statusFilter,
+    setStatusFilter,
+  ] =
+    useState<StatusFilter>(
+      "all"
+    );
 
-  const [contactFilter, setContactFilter] =
-    useState<ContactFilter>("all");
+  const [
+    contactFilter,
+    setContactFilter,
+  ] =
+    useState<ContactFilter>(
+      "all"
+    );
 
-  const [dialogOpen, setDialogOpen] =
-    useState(false);
+  const [
+    dialogOpen,
+    setDialogOpen,
+  ] = useState(false);
 
   const [
     selectedSupplier,
     setSelectedSupplier,
-  ] = useState<Supplier | null>(null);
+  ] =
+    useState<Supplier | null>(
+      null
+    );
 
   const [
     deleteDialogOpen,
@@ -83,41 +112,57 @@ function Suppliers() {
   const [
     supplierToDelete,
     setSupplierToDelete,
-  ] = useState<Supplier | null>(null);
-
-  const [deleting, setDeleting] =
-    useState(false);
-
-  const [message, setMessage] =
-    useState("");
-
-  const [messageType, setMessageType] =
-    useState<"success" | "error">(
-      "success"
+  ] =
+    useState<Supplier | null>(
+      null
     );
 
-  const loadSuppliers = async () => {
-    setLoading(true);
+  const [
+    deleting,
+    setDeleting,
+  ] = useState(false);
 
-    try {
-      const data = await getSuppliers();
+  const [
+    message,
+    setMessage,
+  ] = useState("");
 
-      setSuppliers(data);
-    } catch (error) {
-      console.error(
-        "Could not load suppliers:",
-        error
-      );
+  const [
+    messageType,
+    setMessageType,
+  ] = useState<
+    "success" | "error"
+  >("success");
 
-      setMessageType("error");
+  const loadSuppliers =
+    async () => {
+      setLoading(true);
 
-      setMessage(
-        "Could not load suppliers. Check that the backend is running."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        const data =
+          await getSuppliers();
+
+        setSuppliers(data);
+      } catch (error) {
+        console.error(
+          "Could not load suppliers:",
+          error
+        );
+
+        setMessageType(
+          "error"
+        );
+
+        setMessage(
+          getSupplierErrorMessage(
+            error,
+            "Could not load suppliers. Check that the backend is running."
+          )
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
   useEffect(() => {
     void loadSuppliers();
@@ -126,7 +171,9 @@ function Suppliers() {
   const filteredSuppliers =
     useMemo(() => {
       const searchText =
-        search.trim().toLowerCase();
+        search
+          .trim()
+          .toLowerCase();
 
       return suppliers.filter(
         (supplier) => {
@@ -141,29 +188,42 @@ function Suppliers() {
             ].some((value) =>
               (value ?? "")
                 .toLowerCase()
-                .includes(searchText)
+                .includes(
+                  searchText
+                )
             );
 
           const matchesStatus =
-            statusFilter === "all" ||
-            (statusFilter === "active" &&
+            statusFilter ===
+              "all" ||
+            (statusFilter ===
+              "active" &&
               supplier.isActive) ||
-            (statusFilter === "inactive" &&
+            (statusFilter ===
+              "inactive" &&
               !supplier.isActive);
 
           const hasEmail =
-            Boolean(supplier.email?.trim());
+            Boolean(
+              supplier.email?.trim()
+            );
 
           const hasPhone =
-            Boolean(supplier.phone?.trim());
+            Boolean(
+              supplier.phone?.trim()
+            );
 
           const matchesContact =
-            contactFilter === "all" ||
-            (contactFilter === "email" &&
+            contactFilter ===
+              "all" ||
+            (contactFilter ===
+              "email" &&
               hasEmail) ||
-            (contactFilter === "phone" &&
+            (contactFilter ===
+              "phone" &&
               hasPhone) ||
-            (contactFilter === "complete" &&
+            (contactFilter ===
+              "complete" &&
               hasEmail &&
               hasPhone);
 
@@ -183,7 +243,8 @@ function Suppliers() {
 
   const activeSupplierCount =
     suppliers.filter(
-      (supplier) => supplier.isActive
+      (supplier) =>
+        supplier.isActive
     ).length;
 
   const inactiveSupplierCount =
@@ -191,37 +252,56 @@ function Suppliers() {
     activeSupplierCount;
 
   const suppliersWithEmail =
-    suppliers.filter((supplier) =>
-      Boolean(supplier.email?.trim())
+    suppliers.filter(
+      (supplier) =>
+        Boolean(
+          supplier.email?.trim()
+        )
     ).length;
 
   const suppliersWithPhone =
-    suppliers.filter((supplier) =>
-      Boolean(supplier.phone?.trim())
+    suppliers.filter(
+      (supplier) =>
+        Boolean(
+          supplier.phone?.trim()
+        )
     ).length;
 
-  const handleOpenAdd = () => {
-    setSelectedSupplier(null);
-    setDialogOpen(true);
-  };
+  const handleOpenAdd =
+    () => {
+      setSelectedSupplier(
+        null
+      );
+
+      setDialogOpen(true);
+    };
 
   const handleOpenEdit = (
     supplier: Supplier
   ) => {
-    setSelectedSupplier(supplier);
+    setSelectedSupplier(
+      supplier
+    );
+
     setDialogOpen(true);
   };
 
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setSelectedSupplier(null);
-  };
+  const handleCloseDialog =
+    () => {
+      setDialogOpen(false);
+
+      setSelectedSupplier(
+        null
+      );
+    };
 
   const handleSave = async (
     supplier: Supplier
   ) => {
     try {
-      if (selectedSupplier?.id) {
+      if (
+        selectedSupplier?.id
+      ) {
         await updateSupplier(
           selectedSupplier.id,
           supplier
@@ -231,14 +311,18 @@ function Suppliers() {
           "Supplier updated successfully."
         );
       } else {
-        await createSupplier(supplier);
+        await createSupplier(
+          supplier
+        );
 
         setMessage(
           "Supplier added successfully."
         );
       }
 
-      setMessageType("success");
+      setMessageType(
+        "success"
+      );
 
       await loadSuppliers();
     } catch (error) {
@@ -247,10 +331,15 @@ function Suppliers() {
         error
       );
 
-      setMessageType("error");
+      setMessageType(
+        "error"
+      );
 
       setMessage(
-        "Could not save the supplier."
+        getSupplierErrorMessage(
+          error,
+          "Could not save the supplier."
+        )
       );
 
       throw error;
@@ -260,170 +349,274 @@ function Suppliers() {
   const handleOpenDelete = (
     supplier: Supplier
   ) => {
-    setSupplierToDelete(supplier);
-    setDeleteDialogOpen(true);
+    setSupplierToDelete(
+      supplier
+    );
+
+    setDeleteDialogOpen(
+      true
+    );
   };
 
-  const handleCloseDelete = () => {
-    setDeleteDialogOpen(false);
-    setSupplierToDelete(null);
-  };
-
-  const handleDelete = async () => {
-    if (!supplierToDelete?.id) {
-      return;
-    }
-
-    setDeleting(true);
-
-    try {
-      await deleteSupplier(
-        supplierToDelete.id
+  const handleCloseDelete =
+    () => {
+      setDeleteDialogOpen(
+        false
       );
 
-      setMessageType("success");
+      setSupplierToDelete(
+        null
+      );
+    };
 
-      setMessage(
-        "Supplier deleted successfully."
+  const handleDelete =
+    async () => {
+      if (
+        !supplierToDelete?.id
+      ) {
+        return;
+      }
+
+      setDeleting(true);
+
+      try {
+        await deleteSupplier(
+          supplierToDelete.id
+        );
+
+        setMessageType(
+          "success"
+        );
+
+        setMessage(
+          "Supplier deleted successfully."
+        );
+
+        handleCloseDelete();
+
+        await loadSuppliers();
+      } catch (error) {
+        console.error(
+          "Could not delete supplier:",
+          error
+        );
+
+        setMessageType(
+          "error"
+        );
+
+        setMessage(
+          getSupplierErrorMessage(
+            error,
+            "Could not delete the supplier."
+          )
+        );
+      } finally {
+        setDeleting(false);
+      }
+    };
+
+  const handleClearFilters =
+    () => {
+      setSearch("");
+
+      setStatusFilter(
+        "all"
       );
 
-      handleCloseDelete();
-
-      await loadSuppliers();
-    } catch (error) {
-      console.error(
-        "Could not delete supplier:",
-        error
+      setContactFilter(
+        "all"
       );
-
-      setMessageType("error");
-
-      setMessage(
-        "Could not delete the supplier."
-      );
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const handleClearFilters = () => {
-    setSearch("");
-    setStatusFilter("all");
-    setContactFilter("all");
-  };
+    };
 
   const hasActiveFilters =
     Boolean(search) ||
     statusFilter !== "all" ||
     contactFilter !== "all";
 
-  const columns: GridColDef<Supplier>[] =
+  const columns:
+    GridColDef<Supplier>[] =
     [
       {
         field: "name",
-        headerName: "Supplier",
+
+        headerName:
+          "Supplier",
+
         flex: 1.2,
+
         minWidth: 210,
       },
+
       {
-        field: "contactPerson",
-        headerName: "Contact Person",
+        field:
+          "contactPerson",
+
+        headerName:
+          "Contact Person",
+
         flex: 1,
+
         minWidth: 170,
-        valueGetter: (_value, row) =>
-          row.contactPerson || "—",
+
+        valueGetter:
+          (
+            _value,
+            row
+          ) =>
+            row.contactPerson ||
+            "—",
       },
+
       {
         field: "phone",
-        headerName: "Phone",
+
+        headerName:
+          "Phone",
+
         width: 165,
-        valueGetter: (_value, row) =>
-          row.phone || "—",
+
+        valueGetter:
+          (
+            _value,
+            row
+          ) =>
+            row.phone ||
+            "—",
       },
+
       {
         field: "email",
-        headerName: "Email",
-        flex: 1.2,
-        minWidth: 220,
-        valueGetter: (_value, row) =>
-          row.email || "—",
-      },
-      {
-        field: "address",
-        headerName: "Address",
-        flex: 1,
-        minWidth: 210,
-        valueGetter: (_value, row) =>
-          row.address || "—",
-      },
-      {
-        field: "isActive",
-        headerName: "Status",
-        width: 130,
-        renderCell: (params) => (
-          <Chip
-            size="small"
-            label={
-              params.row.isActive
-                ? "Active"
-                : "Inactive"
-            }
-            color={
-              params.row.isActive
-                ? "success"
-                : "default"
-            }
-            variant="outlined"
-          />
-        ),
-      },
-      {
-        field: "actions",
-        headerName: "Actions",
-        width: 210,
-        sortable: false,
-        filterable: false,
-        renderCell: (params) => (
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              height: "100%",
-            }}
-          >
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={
-                <EditOutlined />
-              }
-              onClick={() =>
-                handleOpenEdit(
-                  params.row
-                )
-              }
-            >
-              Edit
-            </Button>
 
-            <Button
+        headerName:
+          "Email",
+
+        flex: 1.2,
+
+        minWidth: 220,
+
+        valueGetter:
+          (
+            _value,
+            row
+          ) =>
+            row.email ||
+            "—",
+      },
+
+      {
+        field:
+          "address",
+
+        headerName:
+          "Address",
+
+        flex: 1,
+
+        minWidth: 210,
+
+        valueGetter:
+          (
+            _value,
+            row
+          ) =>
+            row.address ||
+            "—",
+      },
+
+      {
+        field:
+          "isActive",
+
+        headerName:
+          "Status",
+
+        width: 130,
+
+        renderCell:
+          (params) => (
+            <Chip
               size="small"
+              label={
+                params.row
+                  .isActive
+                  ? "Active"
+                  : "Inactive"
+              }
+              color={
+                params.row
+                  .isActive
+                  ? "success"
+                  : "default"
+              }
               variant="outlined"
-              color="error"
-              startIcon={
-                <DeleteOutlined />
-              }
-              onClick={() =>
-                handleOpenDelete(
-                  params.row
-                )
-              }
+            />
+          ),
+      },
+
+      {
+        field:
+          "actions",
+
+        headerName:
+          "Actions",
+
+        width: 210,
+
+        sortable:
+          false,
+
+        filterable:
+          false,
+
+        renderCell:
+          (params) => (
+            <Box
+              sx={{
+                display:
+                  "flex",
+
+                alignItems:
+                  "center",
+
+                gap: 1,
+
+                height:
+                  "100%",
+              }}
             >
-              Delete
-            </Button>
-          </Box>
-        ),
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={
+                  <EditOutlined />
+                }
+                onClick={() =>
+                  handleOpenEdit(
+                    params.row
+                  )
+                }
+              >
+                Edit
+              </Button>
+
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                startIcon={
+                  <DeleteOutlined />
+                }
+                onClick={() =>
+                  handleOpenDelete(
+                    params.row
+                  )
+                }
+              >
+                Delete
+              </Button>
+            </Box>
+          ),
       },
     ];
 
@@ -440,7 +633,9 @@ function Suppliers() {
           sm: "center",
         }}
         spacing={2}
-        sx={{ mb: 3 }}
+        sx={{
+          mb: 3,
+        }}
       >
         <Box>
           <Typography variant="h4">
@@ -448,15 +643,19 @@ function Suppliers() {
           </Typography>
 
           <Typography color="text.secondary">
-            Create and manage drink
-            suppliers.
+            Create and manage
+            drink suppliers.
           </Typography>
         </Box>
 
         <Button
           variant="contained"
-          startIcon={<AddOutlined />}
-          onClick={handleOpenAdd}
+          startIcon={
+            <AddOutlined />
+          }
+          onClick={
+            handleOpenAdd
+          }
         >
           Add Supplier
         </Button>
@@ -465,12 +664,20 @@ function Suppliers() {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(2, 1fr)",
-            lg: "repeat(4, 1fr)",
-          },
+
+          gridTemplateColumns:
+            {
+              xs: "1fr",
+
+              sm:
+                "repeat(2, 1fr)",
+
+              lg:
+                "repeat(4, 1fr)",
+            },
+
           gap: 2,
+
           mb: 3,
         }}
       >
@@ -488,15 +695,17 @@ function Suppliers() {
 
                 <Typography
                   variant="h4"
-                  fontWeight={700}
+                  fontWeight={
+                    700
+                  }
                 >
-                  {suppliers.length}
+                  {
+                    suppliers.length
+                  }
                 </Typography>
               </Box>
 
-              <BusinessOutlined
-                fontSize="large"
-              />
+              <BusinessOutlined fontSize="large" />
             </Stack>
           </CardContent>
         </Card>
@@ -509,16 +718,23 @@ function Suppliers() {
 
             <Typography
               variant="h4"
-              fontWeight={700}
+              fontWeight={
+                700
+              }
             >
-              {activeSupplierCount}
+              {
+                activeSupplierCount
+              }
             </Typography>
 
             <Typography
               variant="body2"
               color="text.secondary"
             >
-              {inactiveSupplierCount} inactive
+              {
+                inactiveSupplierCount
+              }{" "}
+              inactive
             </Typography>
           </CardContent>
         </Card>
@@ -537,15 +753,17 @@ function Suppliers() {
 
                 <Typography
                   variant="h4"
-                  fontWeight={700}
+                  fontWeight={
+                    700
+                  }
                 >
-                  {suppliersWithEmail}
+                  {
+                    suppliersWithEmail
+                  }
                 </Typography>
               </Box>
 
-              <EmailOutlined
-                fontSize="large"
-              />
+              <EmailOutlined fontSize="large" />
             </Stack>
           </CardContent>
         </Card>
@@ -564,15 +782,17 @@ function Suppliers() {
 
                 <Typography
                   variant="h4"
-                  fontWeight={700}
+                  fontWeight={
+                    700
+                  }
                 >
-                  {suppliersWithPhone}
+                  {
+                    suppliersWithPhone
+                  }
                 </Typography>
               </Box>
 
-              <PhoneOutlined
-                fontSize="large"
-              />
+              <PhoneOutlined fontSize="large" />
             </Stack>
           </CardContent>
         </Card>
@@ -580,38 +800,60 @@ function Suppliers() {
 
       <Box
         sx={{
-          bgcolor: "background.paper",
-          border: "1px solid #e5e7eb",
-          borderRadius: 3,
+          bgcolor:
+            "background.paper",
+
+          border:
+            "1px solid #e5e7eb",
+
+          borderRadius:
+            3,
+
           p: 2,
         }}
       >
         <Box
           sx={{
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr",
-              md: "2fr 1fr 1fr",
-            },
+            display:
+              "grid",
+
+            gridTemplateColumns:
+              {
+                xs:
+                  "1fr",
+
+                md:
+                  "2fr 1fr 1fr",
+              },
+
             gap: 1.5,
+
             mb: 2,
           }}
         >
           <TextField
             placeholder="Search suppliers..."
-            value={search}
-            onChange={(event) =>
-              setSearch(
-                event.target.value
-              )
+            value={
+              search
+            }
+            onChange={
+              (
+                event
+              ) =>
+                setSearch(
+                  event
+                    .target
+                    .value
+                )
             }
             slotProps={{
               input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchOutlined />
-                  </InputAdornment>
-                ),
+                startAdornment:
+                  (
+                    <InputAdornment position="start">
+                      <SearchOutlined />
+                    </InputAdornment>
+                  ),
               },
             }}
           />
@@ -619,12 +861,18 @@ function Suppliers() {
           <TextField
             select
             label="Status"
-            value={statusFilter}
-            onChange={(event) =>
-              setStatusFilter(
-                event.target
-                  .value as StatusFilter
-              )
+            value={
+              statusFilter
+            }
+            onChange={
+              (
+                event
+              ) =>
+                setStatusFilter(
+                  event
+                    .target
+                    .value as StatusFilter
+                )
             }
           >
             <MenuItem value="all">
@@ -643,12 +891,18 @@ function Suppliers() {
           <TextField
             select
             label="Contact Details"
-            value={contactFilter}
-            onChange={(event) =>
-              setContactFilter(
-                event.target
-                  .value as ContactFilter
-              )
+            value={
+              contactFilter
+            }
+            onChange={
+              (
+                event
+              ) =>
+                setContactFilter(
+                  event
+                    .target
+                    .value as ContactFilter
+                )
             }
           >
             <MenuItem value="all">
@@ -671,24 +925,38 @@ function Suppliers() {
 
         <Stack
           direction={{
-            xs: "column",
-            sm: "row",
+            xs:
+              "column",
+
+            sm:
+              "row",
           }}
           justifyContent="space-between"
           alignItems={{
-            xs: "stretch",
-            sm: "center",
+            xs:
+              "stretch",
+
+            sm:
+              "center",
           }}
           spacing={1}
-          sx={{ mb: 2 }}
+          sx={{
+            mb: 2,
+          }}
         >
           <Typography
             variant="body2"
             color="text.secondary"
           >
             Showing{" "}
-            {filteredSuppliers.length} of{" "}
-            {suppliers.length} suppliers
+            {
+              filteredSuppliers.length
+            }{" "}
+            of{" "}
+            {
+              suppliers.length
+            }{" "}
+            suppliers
           </Typography>
 
           {hasActiveFilters && (
@@ -707,11 +975,19 @@ function Suppliers() {
         </Stack>
 
         <DataGrid
-          rows={filteredSuppliers}
-          columns={columns}
-          loading={loading}
-          getRowId={(row) =>
-            row.id ?? row.name
+          rows={
+            filteredSuppliers
+          }
+          columns={
+            columns
+          }
+          loading={
+            loading
+          }
+          getRowId={
+            (row) =>
+              row.id ??
+              row.name
           }
           disableRowSelectionOnClick
           pageSizeOptions={[
@@ -721,87 +997,132 @@ function Suppliers() {
             50,
           ]}
           initialState={{
-            pagination: {
-              paginationModel: {
-                pageSize: 10,
-                page: 0,
+            pagination:
+              {
+                paginationModel:
+                  {
+                    pageSize:
+                      10,
+
+                    page:
+                      0,
+                  },
               },
-            },
           }}
           slots={{
-            noRowsOverlay: () => (
-              <Box
-                sx={{
-                  minHeight: 300,
-                  display: "grid",
-                  placeItems: "center",
-                }}
-              >
-                <Stack
-                  alignItems="center"
-                  spacing={1}
+            noRowsOverlay:
+              () => (
+                <Box
+                  sx={{
+                    minHeight:
+                      300,
+
+                    display:
+                      "grid",
+
+                    placeItems:
+                      "center",
+                  }}
                 >
-                  <BusinessOutlined
-                    color="disabled"
-                    fontSize="large"
-                  />
-
-                  <Typography
-                    fontWeight={700}
+                  <Stack
+                    alignItems="center"
+                    spacing={1}
                   >
-                    No suppliers found
-                  </Typography>
+                    <BusinessOutlined
+                      color="disabled"
+                      fontSize="large"
+                    />
 
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
-                    Add a supplier or change
-                    your filters.
-                  </Typography>
-                </Stack>
-              </Box>
-            ),
+                    <Typography
+                      fontWeight={
+                        700
+                      }
+                    >
+                      No suppliers found
+                    </Typography>
+
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      Add a supplier
+                      or change your
+                      filters.
+                    </Typography>
+                  </Stack>
+                </Box>
+              ),
           }}
           sx={{
-            minHeight: 540,
+            minHeight:
+              540,
+
             border: 0,
+
             "& .MuiDataGrid-columnHeaders":
               {
-                bgcolor: "#f8fafc",
+                bgcolor:
+                  "#f8fafc",
               },
           }}
         />
       </Box>
 
       <SupplierDialog
-        open={dialogOpen}
-        supplier={selectedSupplier}
-        onClose={handleCloseDialog}
-        onSave={handleSave}
+        open={
+          dialogOpen
+        }
+        supplier={
+          selectedSupplier
+        }
+        onClose={
+          handleCloseDialog
+        }
+        onSave={
+          handleSave
+        }
       />
 
       <DeleteSupplierDialog
-        open={deleteDialogOpen}
-        supplier={supplierToDelete}
-        deleting={deleting}
-        onClose={handleCloseDelete}
-        onConfirm={handleDelete}
+        open={
+          deleteDialogOpen
+        }
+        supplier={
+          supplierToDelete
+        }
+        deleting={
+          deleting
+        }
+        onClose={
+          handleCloseDelete
+        }
+        onConfirm={
+          handleDelete
+        }
       />
 
       <Snackbar
-        open={Boolean(message)}
-        autoHideDuration={4000}
+        open={Boolean(
+          message
+        )}
+        autoHideDuration={
+          4000
+        }
         onClose={() =>
           setMessage("")
         }
         anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
+          vertical:
+            "bottom",
+
+          horizontal:
+            "right",
         }}
       >
         <Alert
-          severity={messageType}
+          severity={
+            messageType
+          }
           variant="filled"
           onClose={() =>
             setMessage("")

@@ -27,7 +27,7 @@ export function exportReportToPdf({
 
   document.setFontSize(18);
   document.setFont("helvetica", "bold");
-  document.text("BarMaster Cameroon", 14, 15);
+  document.text("IVY EASY LOUNGE", 14, 15);
 
   document.setFontSize(13);
   document.text(title, 14, 24);

@@ -8,7 +8,9 @@ public class SupplierService
 {
     private readonly SupplierRepository _repository;
 
-    public SupplierService(SupplierRepository repository)
+    public SupplierService(
+        SupplierRepository repository
+    )
     {
         _repository = repository;
     }
@@ -18,84 +20,207 @@ public class SupplierService
         return await _repository.GetAllAsync();
     }
 
-    public async Task<Supplier?> GetByIdAsync(string id)
+    public async Task<Supplier?> GetByIdAsync(
+        string id
+    )
     {
         return await _repository.GetByIdAsync(id);
     }
 
-    public async Task<(bool Success, string Message, Supplier? Supplier)> CreateAsync(
+    public async Task<(
+        bool Success,
+        string Message,
+        Supplier? Supplier
+    )> CreateAsync(
         CreateSupplierDto dto
     )
     {
-        var existingSupplier = await _repository.GetByNameAsync(dto.Name);
+        var name =
+            (dto.Name ?? string.Empty).Trim();
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return (
+                false,
+                "Supplier name is required.",
+                null
+            );
+        }
+
+        var existingSupplier =
+            await _repository.GetByNameAsync(name);
 
         if (existingSupplier is not null)
         {
-            return (false, "Supplier already exists.", null);
+            return (
+                false,
+                "A supplier with this name already exists.",
+                null
+            );
         }
 
-        var supplier = new Supplier
-        {
-            Name = dto.Name.Trim(),
-            ContactPerson = dto.ContactPerson.Trim(),
-            Phone = dto.Phone.Trim(),
-            Email = dto.Email.Trim(),
-            Address = dto.Address.Trim(),
-            Notes = dto.Notes.Trim(),
-            IsActive = dto.IsActive
-        };
+        var supplier =
+            new Supplier
+            {
+                Name = name,
 
-        await _repository.CreateAsync(supplier);
+                ContactPerson =
+                    (dto.ContactPerson ?? string.Empty)
+                        .Trim(),
 
-        return (true, "Supplier created successfully.", supplier);
+                Phone =
+                    (dto.Phone ?? string.Empty)
+                        .Trim(),
+
+                Email =
+                    (dto.Email ?? string.Empty)
+                        .Trim(),
+
+                Address =
+                    (dto.Address ?? string.Empty)
+                        .Trim(),
+
+                Notes =
+                    (dto.Notes ?? string.Empty)
+                        .Trim(),
+
+                IsActive =
+                    dto.IsActive
+            };
+
+        await _repository.CreateAsync(
+            supplier
+        );
+
+        return (
+            true,
+            "Supplier created successfully.",
+            supplier
+        );
     }
 
-    public async Task<(bool Success, string Message)> UpdateAsync(
+    public async Task<(
+        bool Success,
+        string Message
+    )> UpdateAsync(
         string id,
         UpdateSupplierDto dto
     )
     {
-        var existingSupplier = await _repository.GetByIdAsync(id);
+        var existingSupplier =
+            await _repository.GetByIdAsync(id);
 
         if (existingSupplier is null)
         {
-            return (false, "Supplier not found.");
+            return (
+                false,
+                "Supplier not found."
+            );
         }
 
-        var duplicateSupplier = await _repository.GetByNameAsync(dto.Name);
+        var name =
+            (dto.Name ?? string.Empty).Trim();
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return (
+                false,
+                "Supplier name is required."
+            );
+        }
+
+        var duplicateSupplier =
+            await _repository.GetByNameAsync(name);
 
         if (
             duplicateSupplier is not null &&
             duplicateSupplier.Id != id
         )
         {
-            return (false, "Another supplier already uses this name.");
+            return (
+                false,
+                "Another supplier already uses this name."
+            );
         }
 
-        existingSupplier.Name = dto.Name.Trim();
-        existingSupplier.ContactPerson = dto.ContactPerson.Trim();
-        existingSupplier.Phone = dto.Phone.Trim();
-        existingSupplier.Email = dto.Email.Trim();
-        existingSupplier.Address = dto.Address.Trim();
-        existingSupplier.Notes = dto.Notes.Trim();
-        existingSupplier.IsActive = dto.IsActive;
+        existingSupplier.Name =
+            name;
 
-        await _repository.UpdateAsync(id, existingSupplier);
+        existingSupplier.ContactPerson =
+            (dto.ContactPerson ?? string.Empty)
+                .Trim();
 
-        return (true, "Supplier updated successfully.");
+        existingSupplier.Phone =
+            (dto.Phone ?? string.Empty)
+                .Trim();
+
+        existingSupplier.Email =
+            (dto.Email ?? string.Empty)
+                .Trim();
+
+        existingSupplier.Address =
+            (dto.Address ?? string.Empty)
+                .Trim();
+
+        existingSupplier.Notes =
+            (dto.Notes ?? string.Empty)
+                .Trim();
+
+        existingSupplier.IsActive =
+            dto.IsActive;
+
+        var updated =
+            await _repository.UpdateAsync(
+                id,
+                existingSupplier
+            );
+
+        if (!updated)
+        {
+            return (
+                false,
+                "Supplier could not be updated."
+            );
+        }
+
+        return (
+            true,
+            "Supplier updated successfully."
+        );
     }
 
-    public async Task<(bool Success, string Message)> DeleteAsync(string id)
+    public async Task<(
+        bool Success,
+        string Message
+    )> DeleteAsync(
+        string id
+    )
     {
-        var existingSupplier = await _repository.GetByIdAsync(id);
+        var existingSupplier =
+            await _repository.GetByIdAsync(id);
 
         if (existingSupplier is null)
         {
-            return (false, "Supplier not found.");
+            return (
+                false,
+                "Supplier not found."
+            );
         }
 
-        await _repository.DeleteAsync(id);
+        var deleted =
+            await _repository.DeleteAsync(id);
 
-        return (true, "Supplier deleted successfully.");
+        if (!deleted)
+        {
+            return (
+                false,
+                "Supplier could not be deleted."
+            );
+        }
+
+        return (
+            true,
+            "Supplier deleted successfully."
+        );
     }
 }

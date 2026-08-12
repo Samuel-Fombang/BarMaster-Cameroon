@@ -182,7 +182,7 @@ function Login() {
             variant="h4"
             fontWeight={800}
           >
-            BarMaster
+            IVY EASY LOUNGE
           </Typography>
 
           <Typography
@@ -191,7 +191,7 @@ function Login() {
               mt: 0.5,
             }}
           >
-            Cameroon
+            Professional Bar Management System
           </Typography>
         </Box>
 
@@ -350,7 +350,7 @@ function Login() {
             textAlign="center"
             sx={{ mt: 3 }}
           >
-            BarMaster professional bar management
+            IVY EASY LOUNGE professional bar management
           </Typography>
         </Box>
       </Paper>

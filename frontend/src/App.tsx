@@ -2,6 +2,7 @@ import {
   Suspense,
   lazy,
 } from "react";
+
 import {
   BrowserRouter,
   Navigate,
@@ -32,6 +33,10 @@ const Categories = lazy(
 
 const Brands = lazy(
   () => import("./pages/Brands")
+);
+
+const BottleSizes = lazy(
+  () => import("./pages/BottleSizes")
 );
 
 const Suppliers = lazy(
@@ -146,6 +151,11 @@ function App() {
                 <Route
                   path="/brands"
                   element={<Brands />}
+                />
+
+                <Route
+                  path="/bottle-sizes"
+                  element={<BottleSizes />}
                 />
 
                 <Route

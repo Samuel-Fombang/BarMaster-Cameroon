@@ -134,7 +134,7 @@ function ForgotPassword() {
           sx={{ mb: 3 }}
         >
           Enter the email address connected to your
-          BarMaster worker account. We will send you a
+          IVY EASY LOUNGE worker account. We will send you a
           six-digit verification code.
         </Typography>
 
