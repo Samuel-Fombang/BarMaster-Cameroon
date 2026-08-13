@@ -320,9 +320,71 @@ public class PurchaseService
             );
         }
 
+        var stockResult =
+            await _inventoryService.DecreaseStockAsync(
+                existingPurchase.DrinkId,
+                existingPurchase.DestinationLocationId,
+                existingPurchase.Quantity
+            );
+
+        if (!stockResult.Success)
+        {
+            return (
+                false,
+                $"Purchase cannot be deleted because the inventory could not be reversed. {stockResult.Message}"
+            );
+        }
+
+        try
+        {
+            var deleted =
+                await _purchaseRepository.DeleteAsync(
+                    id
+                );
+
+            if (!deleted)
+            {
+                var drink =
+                    await _drinkRepository.GetByIdAsync(
+                        existingPurchase.DrinkId
+                    );
+
+                await _inventoryService.IncreaseStockAsync(
+                    existingPurchase.DrinkId,
+                    existingPurchase.DestinationLocationId,
+                    existingPurchase.Quantity,
+                    drink?.MinimumStock ?? 0
+                );
+
+                return (
+                    false,
+                    "Purchase could not be deleted. Inventory was restored."
+                );
+            }
+        }
+        catch
+        {
+            var drink =
+                await _drinkRepository.GetByIdAsync(
+                    existingPurchase.DrinkId
+                );
+
+            await _inventoryService.IncreaseStockAsync(
+                existingPurchase.DrinkId,
+                existingPurchase.DestinationLocationId,
+                existingPurchase.Quantity,
+                drink?.MinimumStock ?? 0
+            );
+
+            return (
+                false,
+                "Purchase could not be deleted. Inventory was restored."
+            );
+        }
+
         return (
-            false,
-            "Completed purchases cannot be deleted because inventory has already been received."
+            true,
+            "Purchase deleted successfully and inventory adjusted."
         );
     }
 
